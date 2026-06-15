@@ -22,17 +22,17 @@ export async function cargarUsuarios() {
 
 function renderUsuarios() {
   const cont = document.getElementById('lista-usuarios');
-  const yo = getSession()?.usuario;
+  const yo = (getSession()?.usuario || '').toUpperCase();
 
   cont.innerHTML = usuarios.map((u) => {
     const rolBadge = u.rol === 'admin'
       ? '<span class="badge-rol badge-admin">Admin</span>'
       : '<span class="badge-rol badge-user">User</span>';
     const estado = u.activo ? '' : '<span class="badge-rol badge-inactivo">Inactivo</span>';
-    const esYo = u.usuario === yo;
+    const esYo = String(u.usuario).toUpperCase() === yo;
     return `
       <article class="card" data-usuario="${esc(u.usuario)}">
-        <div class="card-titulo">👤 ${esc(u.usuario)}${esYo ? ' <small class="nota">(tú)</small>' : ''}</div>
+        <div class="card-titulo">👤 ${esc(String(u.usuario).toUpperCase())}${esYo ? ' <small class="nota">(tú)</small>' : ''}</div>
         <div>${rolBadge} ${estado}</div>
         <div class="card-acciones">
           <button type="button" class="btn-secundario" data-accion="editar">Editar</button>
@@ -65,7 +65,7 @@ async function guardarUsuario(e) {
   const btn = document.getElementById('btn-usuario-guardar');
   error.hidden = true;
 
-  const nombre = document.getElementById('u-usuario').value.trim();
+  const nombre = document.getElementById('u-usuario').value.trim().toUpperCase();
   const password = document.getElementById('u-password').value;
   const rol = document.getElementById('u-rol').value;
   const activo = document.getElementById('u-activo').checked;
@@ -127,6 +127,11 @@ async function borrarUsuario(nombre) {
 }
 
 export function initUsuarios() {
+  // El nombre de usuario se escribe siempre en mayúsculas.
+  document.getElementById('u-usuario').addEventListener('input', (e) => {
+    e.target.value = e.target.value.toUpperCase();
+  });
+
   document.getElementById('btn-nuevo-usuario').addEventListener('click', () => abrirDialogo(null));
   document.getElementById('form-usuario').addEventListener('submit', guardarUsuario);
   document.getElementById('btn-usuario-cancelar').addEventListener('click', () => {

@@ -38,22 +38,43 @@ function renderLista() {
 
   document.getElementById('lista-vacia').hidden = visibles.length > 0;
 
-  cont.innerHTML = visibles.map((m) => `
-    <article class="card" data-id="${esc(m.id)}">
-      <span class="card-codigo">#${esc(m.codigo)}</span>
-      <div class="card-titulo">${esc(m.titulo)}</div>
-      ${m.area ? `<div class="card-area">📁 ${esc(m.area)}</div>` : ''}
-      ${m.descripcion ? `<div class="card-desc">${esc(m.descripcion)}</div>` : ''}
-      <div class="card-fechas">
-        Creado: ${esc(fecha(m.fechaCreacion))}${m.usuarioCreador ? ' · ' + esc(m.usuarioCreador) : ''}
-      </div>
-      <div class="card-acciones">
-        <button type="button" class="btn-primario" data-accion="ver">Ver</button>
-        ${admin ? `<button type="button" class="btn-secundario" data-accion="editar">Editar</button>` : ''}
-        ${admin ? `<button type="button" class="btn-peligro" data-accion="borrar">Borrar</button>` : ''}
-      </div>
-    </article>
-  `).join('');
+  if (!visibles.length) { cont.innerHTML = ''; return; }
+
+  const filas = visibles.map((m) => {
+    const creado = `${esc(fecha(m.fechaCreacion))}${m.usuarioCreador ? `<br><span class="t-por">por ${esc(m.usuarioCreador.toUpperCase())}</span>` : ''}`;
+    const modificado = m.fechaModificacion
+      ? `${esc(fecha(m.fechaModificacion))}${m.usuarioModificacion ? `<br><span class="t-por">por ${esc(m.usuarioModificacion.toUpperCase())}</span>` : ''}`
+      : '<span class="t-vacio">—</span>';
+    return `
+      <tr data-id="${esc(m.id)}">
+        <td class="t-codigo">#${esc(m.codigo)}</td>
+        <td>
+          <div class="t-titulo">${esc(m.titulo)}</div>
+          ${m.descripcion ? `<div class="t-desc">${esc(m.descripcion)}</div>` : ''}
+        </td>
+        <td>${esc(m.area || '')}</td>
+        <td class="t-fecha">${creado}</td>
+        <td class="t-fecha">${modificado}</td>
+        <td class="col-acciones">
+          <div class="acciones">
+            <button type="button" class="btn-primario" data-accion="ver">Ver</button>
+            ${admin ? `<button type="button" class="btn-secundario" data-accion="editar">Editar</button>` : ''}
+            ${admin ? `<button type="button" class="btn-peligro" data-accion="borrar">Borrar</button>` : ''}
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+
+  cont.innerHTML = `
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th>Código</th><th>Título</th><th>Área</th>
+          <th>Creado</th><th>Modificado</th><th></th>
+        </tr>
+      </thead>
+      <tbody>${filas}</tbody>
+    </table>`;
 }
 
 /** Rellena el datalist de áreas con los valores existentes. */
@@ -198,7 +219,7 @@ export function initManuales() {
   document.getElementById('lista-manuales').addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-accion]');
     if (!btn) return;
-    const id = btn.closest('.card').dataset.id;
+    const id = btn.closest('[data-id]').dataset.id;
     if (btn.dataset.accion === 'ver') verManual(id);
     else if (btn.dataset.accion === 'editar') abrirFormulario(id);
     else if (btn.dataset.accion === 'borrar') borrarManual(id);

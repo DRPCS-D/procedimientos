@@ -99,7 +99,8 @@ function findUser_(usuario, password) {
   for (var i = 1; i < rows.length; i++) {
     var rowUsuario = String(rows[i][0]).trim();
     var rowPass = String(rows[i][1]);
-    if (rowUsuario === nombre && rowPass === pass && esActivo_(rows[i][3])) {
+    // El usuario no distingue mayúsculas/minúsculas; la contraseña sí.
+    if (rowUsuario.toUpperCase() === nombre.toUpperCase() && rowPass === pass && esActivo_(rows[i][3])) {
       return {
         usuario: rowUsuario,
         rol: normalizarRol_(rows[i][2]),
@@ -295,7 +296,7 @@ function handleListUsuarios_(body) {
 
 function handleCreateUsuario_(body) {
   requireAdmin_(body);
-  var nombre = String(body.nuevoUsuario || '').trim();
+  var nombre = String(body.nuevoUsuario || '').trim().toUpperCase(); // nombres siempre en mayúsculas
   var password = String(body.nuevaPassword || '');
   var rol = normalizarRol_(body.rol);
   var activo = body.activo !== false;
@@ -472,9 +473,10 @@ function codigoExiste_(sheet, codigo, idExcluir) {
 }
 
 function usuarioPorNombre_(sheet, nombre) {
+  var buscado = String(nombre).trim().toUpperCase();
   var rows = sheet.getDataRange().getValues();
   for (var i = 1; i < rows.length; i++) {
-    if (String(rows[i][0]).trim() === String(nombre).trim()) {
+    if (String(rows[i][0]).trim().toUpperCase() === buscado) {
       return { indice: i + 1, valores: rows[i] };
     }
   }

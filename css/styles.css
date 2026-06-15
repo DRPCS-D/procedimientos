@@ -281,6 +281,41 @@ button { font: inherit; }
 .card-acciones { display: flex; gap: 0.5rem; margin-top: auto; padding-top: 0.5rem; flex-wrap: wrap; }
 .card-acciones button { padding: 0.4rem 0.75rem; font-size: 0.85rem; }
 
+/* ---------- Tabla de manuales ---------- */
+.tabla-contenedor {
+  overflow-x: auto;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra);
+}
+.tabla { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.tabla th, .tabla td {
+  text-align: left;
+  padding: 0.6rem 0.85rem;
+  border-bottom: 1px solid var(--color-borde);
+  vertical-align: top;
+}
+.tabla thead th {
+  font-family: var(--fuente-titulo);
+  font-stretch: condensed;
+  font-weight: 700;
+  color: var(--color-texto-suave);
+  background: var(--color-fondo);
+  white-space: nowrap;
+}
+.tabla tbody tr:hover { background: var(--color-primario-tinte); }
+.tabla tbody tr:last-child td { border-bottom: none; }
+.tabla .t-codigo { font-weight: 700; color: var(--color-primario-oscuro); white-space: nowrap; }
+.tabla .t-titulo { font-weight: 600; color: var(--color-texto); }
+.tabla .t-desc { color: var(--color-texto-suave); font-size: 0.8rem; margin-top: 0.15rem; }
+.tabla .t-fecha { white-space: nowrap; color: var(--color-texto); }
+.tabla .t-por { color: var(--color-texto-suave); font-size: 0.78rem; }
+.tabla .t-vacio { color: var(--color-texto-suave); }
+.tabla .col-acciones { white-space: nowrap; }
+.tabla .acciones { display: flex; gap: 0.35rem; }
+.tabla .acciones button { padding: 0.35rem 0.6rem; font-size: 0.8rem; }
+
 .badge-rol {
   font-size: 0.7rem; font-weight: 700; padding: 0.1rem 0.5rem; border-radius: 999px;
 }

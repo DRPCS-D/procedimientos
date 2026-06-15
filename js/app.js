@@ -17,7 +17,7 @@ const cerrarMenu = () => setMenu(false);
 function entrarApp(sesion) {
   document.getElementById('app-header').hidden = false;
   document.getElementById('header-usuario').textContent =
-    `${sesion.usuario} (${sesion.rol === 'admin' ? 'Admin' : 'User'})`;
+    `${sesion.usuario.toUpperCase()} (${sesion.rol === 'admin' ? 'Admin' : 'User'})`;
 
   const admin = esAdmin();
   document.getElementById('nav-usuarios').hidden = !admin;
