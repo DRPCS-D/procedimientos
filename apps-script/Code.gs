@@ -117,7 +117,11 @@ function handleListManuales_(body) {
   var manuales = [];
   for (var i = 1; i < rows.length; i++) {
     if (!String(rows[i][COL.id]).trim()) continue;
-    manuales.push(rowToManual_(rows[i]));
+    var m = rowToManual_(rows[i]);
+    // "Modificado" se toma de la fecha real del Google Doc, no de la ficha.
+    m.fechaModificacion = fechaModDoc_(m.docId, m.fechaCreacion);
+    m.usuarioModificacion = '';
+    manuales.push(m);
   }
   // Más recientes primero.
   manuales.sort(function (a, b) {
@@ -182,7 +186,7 @@ function handleCreateManual_(body) {
 }
 
 function handleUpdateManual_(body) {
-  var user = requireAdmin_(body);
+  requireAdmin_(body);
   var id = String(body.id || '').trim();
   if (!id) throw new Error('Falta el identificador del manual.');
 
@@ -200,6 +204,10 @@ function handleUpdateManual_(body) {
   var encontrada = filaPorId_(sheet, id);
   if (!encontrada) throw new Error('El manual ya no existe.');
 
+  // Solo se actualizan los datos de la ficha. NO se toca "modificado":
+  // esa marca refleja cambios en el contenido del Google Doc, no en la ficha.
+  // Tampoco se renombra el Doc, porque renombrarlo alteraría su fecha de
+  // modificación y la haría parecer editado sin haber cambiado su contenido.
   var lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
@@ -208,16 +216,8 @@ function handleUpdateManual_(body) {
     sheet.getRange(fila, COL.titulo + 1).setValue(titulo);
     sheet.getRange(fila, COL.descripcion + 1).setValue(descripcion);
     sheet.getRange(fila, COL.area + 1).setValue(area);
-    sheet.getRange(fila, COL.fechaModificacion + 1).setValue(new Date().toISOString());
-    sheet.getRange(fila, COL.usuarioModificacion + 1).setValue(user.usuario);
   } finally {
     lock.releaseLock();
-  }
-
-  // Renombrar el Doc para que coincida con el nuevo código/título.
-  var docId = encontrada.valores[COL.docId];
-  if (docId) {
-    try { DriveApp.getFileById(docId).setName(codigo + ' - ' + titulo); } catch (e) {}
   }
 
   return jsonOut_({ ok: true, manual: rowToManual_(filaPorId_(sheet, id).valores) });
@@ -368,6 +368,26 @@ function moverACarpeta_(file, folder) {
   while (padres.hasNext()) {
     var p = padres.next();
     if (p.getId() !== folder.getId()) p.removeFile(file);
+  }
+}
+
+/**
+ * Devuelve la fecha (ISO) de la última modificación real del Google Doc,
+ * o '' si nunca se editó tras crearse (o si no se puede leer).
+ * Se compara contra la fecha de creación con un pequeño margen para
+ * ignorar la diferencia de milisegundos del propio alta.
+ */
+function fechaModDoc_(docId, fechaCreacion) {
+  if (!docId) return '';
+  try {
+    var last = DriveApp.getFileById(docId).getLastUpdated();
+    if (!last) return '';
+    var lastMs = last.getTime();
+    var creaMs = fechaCreacion ? new Date(fechaCreacion).getTime() : 0;
+    if (creaMs && lastMs <= creaMs + 5000) return ''; // sin cambios tras crearse
+    return last.toISOString();
+  } catch (e) {
+    return '';
   }
 }
 
