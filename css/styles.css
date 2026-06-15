@@ -304,7 +304,9 @@ button { font: inherit; }
   background: var(--color-fondo);
   white-space: nowrap;
 }
+.tabla tbody tr { cursor: pointer; }
 .tabla tbody tr:hover { background: var(--color-primario-tinte); }
+.tabla tbody tr:focus { outline: 2px solid var(--color-primario); outline-offset: -2px; }
 .tabla tbody tr:last-child td { border-bottom: none; }
 .tabla .t-codigo { font-weight: 700; color: var(--color-primario-oscuro); white-space: nowrap; }
 .tabla .t-titulo { font-weight: 600; color: var(--color-texto); }

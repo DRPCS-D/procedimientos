@@ -134,46 +134,44 @@ function handleListManuales_(body) {
 
 function handleCreateManual_(body) {
   var user = requireAdmin_(body);
-  var codigo = String(body.codigo || '').trim();
   var titulo = String(body.titulo || '').trim();
   var area = String(body.area || '').trim();
   var descripcion = String(body.descripcion || '').trim();
 
-  if (!codigo || !titulo) throw new Error('El código y el título son obligatorios.');
+  if (!titulo) throw new Error('El título es obligatorio.');
 
   var sheet = getSheet_(SHEET_MANUALES);
-  if (codigoExiste_(sheet, codigo, null)) {
-    throw new Error('Ya existe un manual con el código ' + codigo + '.');
-  }
-
-  // Crear el Google Doc en la carpeta configurada.
   var folder = obtenerCarpeta_();
-  var doc = DocumentApp.create(codigo + ' - ' + titulo);
-  var cuerpo = doc.getBody();
-  cuerpo.appendParagraph(titulo).setHeading(DocumentApp.ParagraphHeading.TITLE);
-  if (descripcion) cuerpo.appendParagraph(descripcion);
-  cuerpo.appendParagraph('');
-  doc.saveAndClose();
 
-  var docId = doc.getId();
-  var file = DriveApp.getFileById(docId);
-  moverACarpeta_(file, folder);
-  compartirLectura_(file);
-  var docUrl = 'https://docs.google.com/document/d/' + docId + '/edit';
-
-  var ahora = new Date().toISOString();
-  var id = Utilities.getUuid();
-
+  // El código se asigna automáticamente. Se calcula y se inserta dentro del
+  // lock para que dos creaciones simultáneas no obtengan el mismo número.
   var lock = LockService.getScriptLock();
-  lock.waitLock(10000);
+  lock.waitLock(15000);
+  var id;
   try {
+    var codigo = String(siguienteCodigo_(sheet));
+
+    var doc = DocumentApp.create(codigo + ' - ' + titulo);
+    var cuerpo = doc.getBody();
+    cuerpo.appendParagraph(titulo).setHeading(DocumentApp.ParagraphHeading.TITLE);
+    if (descripcion) cuerpo.appendParagraph(descripcion);
+    cuerpo.appendParagraph('');
+    doc.saveAndClose();
+
+    var docId = doc.getId();
+    var file = DriveApp.getFileById(docId);
+    moverACarpeta_(file, folder);
+    compartirLectura_(file);
+    var docUrl = 'https://docs.google.com/document/d/' + docId + '/edit';
+
+    id = Utilities.getUuid();
     var fila = [];
     fila[COL.id] = id;
     fila[COL.codigo] = codigo;
     fila[COL.titulo] = titulo;
     fila[COL.descripcion] = descripcion;
     fila[COL.area] = area;
-    fila[COL.fechaCreacion] = ahora;
+    fila[COL.fechaCreacion] = new Date().toISOString();
     fila[COL.fechaModificacion] = '';
     fila[COL.usuarioCreador] = user.usuario;
     fila[COL.usuarioModificacion] = '';
@@ -187,34 +185,38 @@ function handleCreateManual_(body) {
   return jsonOut_({ ok: true, manual: rowToManual_(filaPorId_(sheet, id).valores) });
 }
 
+/** Devuelve el siguiente código: el mayor número existente + 1 (empieza en 1). */
+function siguienteCodigo_(sheet) {
+  var rows = sheet.getDataRange().getValues();
+  var max = 0;
+  for (var i = 1; i < rows.length; i++) {
+    var n = parseInt(String(rows[i][COL.codigo]).replace(/[^0-9]/g, ''), 10);
+    if (!isNaN(n) && n > max) max = n;
+  }
+  return max + 1;
+}
+
 function handleUpdateManual_(body) {
   requireAdmin_(body);
   var id = String(body.id || '').trim();
   if (!id) throw new Error('Falta el identificador del manual.');
 
-  var codigo = String(body.codigo || '').trim();
   var titulo = String(body.titulo || '').trim();
   var area = String(body.area || '').trim();
   var descripcion = String(body.descripcion || '').trim();
-  if (!codigo || !titulo) throw new Error('El código y el título son obligatorios.');
+  if (!titulo) throw new Error('El título es obligatorio.');
 
   var sheet = getSheet_(SHEET_MANUALES);
-  if (codigoExiste_(sheet, codigo, id)) {
-    throw new Error('Ya existe otro manual con el código ' + codigo + '.');
-  }
-
   var encontrada = filaPorId_(sheet, id);
   if (!encontrada) throw new Error('El manual ya no existe.');
 
-  // Solo se actualizan los datos de la ficha. NO se toca "modificado":
-  // esa marca refleja cambios en el contenido del Google Doc, no en la ficha.
-  // Tampoco se renombra el Doc, porque renombrarlo alteraría su fecha de
-  // modificación y la haría parecer editado sin haber cambiado su contenido.
+  // El código es automático y no se modifica. Solo se actualizan los datos de
+  // la ficha. NO se toca "modificado" (eso refleja cambios del Google Doc) ni
+  // se renombra el Doc (renombrarlo alteraría su fecha de modificación).
   var lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
     var fila = encontrada.indice; // 1-based para Sheets
-    sheet.getRange(fila, COL.codigo + 1).setValue(codigo);
     sheet.getRange(fila, COL.titulo + 1).setValue(titulo);
     sheet.getRange(fila, COL.descripcion + 1).setValue(descripcion);
     sheet.getRange(fila, COL.area + 1).setValue(area);
@@ -460,16 +462,6 @@ function filaPorId_(sheet, id) {
     }
   }
   return null;
-}
-
-/** True si existe un manual con ese código (ignorando el id excluido). */
-function codigoExiste_(sheet, codigo, idExcluir) {
-  var rows = sheet.getDataRange().getValues();
-  for (var i = 1; i < rows.length; i++) {
-    if (idExcluir && String(rows[i][COL.id]).trim() === String(idExcluir).trim()) continue;
-    if (String(rows[i][COL.codigo]).trim() === String(codigo).trim()) return true;
-  }
-  return false;
 }
 
 function usuarioPorNombre_(sheet, nombre) {

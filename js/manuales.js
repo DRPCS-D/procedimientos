@@ -26,7 +26,6 @@ export async function cargarManuales() {
 /** Pinta las tarjetas según el filtro de búsqueda. */
 function renderLista() {
   const cont = document.getElementById('lista-manuales');
-  const admin = esAdmin();
   const q = filtro.trim().toLowerCase();
 
   const visibles = manuales.filter((m) => {
@@ -46,7 +45,7 @@ function renderLista() {
       ? `${esc(fecha(m.fechaModificacion))}${m.usuarioModificacion ? `<br><span class="t-por">por ${esc(m.usuarioModificacion.toUpperCase())}</span>` : ''}`
       : '<span class="t-vacio">—</span>';
     return `
-      <tr data-id="${esc(m.id)}">
+      <tr data-id="${esc(m.id)}" tabindex="0">
         <td class="t-codigo">#${esc(m.codigo)}</td>
         <td>
           <div class="t-titulo">${esc(m.titulo)}</div>
@@ -55,13 +54,6 @@ function renderLista() {
         <td>${esc(m.area || '')}</td>
         <td class="t-fecha">${creado}</td>
         <td class="t-fecha">${modificado}</td>
-        <td class="col-acciones">
-          <div class="acciones">
-            <button type="button" class="btn-primario" data-accion="ver">Ver</button>
-            ${admin ? `<button type="button" class="btn-secundario" data-accion="editar">Editar</button>` : ''}
-            ${admin ? `<button type="button" class="btn-peligro" data-accion="borrar">Borrar</button>` : ''}
-          </div>
-        </td>
       </tr>`;
   }).join('');
 
@@ -70,7 +62,7 @@ function renderLista() {
       <thead>
         <tr>
           <th>Código</th><th>Título</th><th>Área</th>
-          <th>Creado</th><th>Modificado</th><th></th>
+          <th>Creado</th><th>Modificado</th>
         </tr>
       </thead>
       <tbody>${filas}</tbody>
@@ -100,8 +92,8 @@ function verManual(id) {
     ${m.descripcion ? `<p class="card-desc">${esc(m.descripcion)}</p>` : ''}
     <dl>
       ${m.area ? `<dt>Área</dt><dd>${esc(m.area)}</dd>` : ''}
-      <dt>Creado</dt><dd>${esc(fecha(m.fechaCreacion))}${m.usuarioCreador ? ' por ' + esc(m.usuarioCreador) : ''}</dd>
-      ${m.fechaModificacion ? `<dt>Modificado</dt><dd>${esc(fecha(m.fechaModificacion))}${m.usuarioModificacion ? ' por ' + esc(m.usuarioModificacion) : ''}</dd>` : ''}
+      <dt>Creado</dt><dd>${esc(fecha(m.fechaCreacion))}${m.usuarioCreador ? ' por ' + esc(m.usuarioCreador.toUpperCase()) : ''}</dd>
+      ${m.fechaModificacion ? `<dt>Modificado</dt><dd>${esc(fecha(m.fechaModificacion))}${m.usuarioModificacion ? ' por ' + esc(m.usuarioModificacion.toUpperCase()) : ''}</dd>` : ''}
     </dl>
   `;
 
@@ -113,8 +105,10 @@ function verManual(id) {
     if (m.docId) window.open(`https://docs.google.com/document/d/${encodeURIComponent(m.docId)}/export?format=pdf`, '_blank');
   };
 
+  const admin = esAdmin();
+
   const btnEditarContenido = document.getElementById('btn-editar-contenido');
-  btnEditarContenido.hidden = !esAdmin();
+  btnEditarContenido.hidden = !admin;
   btnEditarContenido.onclick = () => {
     const url = m.docUrl || (m.docId ? `https://docs.google.com/document/d/${encodeURIComponent(m.docId)}/edit` : null);
     if (!url) return;
@@ -122,6 +116,14 @@ function verManual(id) {
     // Registrar quién edita el contenido (sin bloquear la apertura del Doc).
     callApi('marcarEdicion', { ...getCredenciales(), id: m.id }).catch(() => {});
   };
+
+  const btnEditarDatos = document.getElementById('btn-ver-editar');
+  btnEditarDatos.hidden = !admin;
+  btnEditarDatos.onclick = () => abrirFormulario(m.id);
+
+  const btnBorrar = document.getElementById('btn-ver-borrar');
+  btnBorrar.hidden = !admin;
+  btnBorrar.onclick = () => borrarManual(m.id);
 
   mostrarVista('vista-ver');
 }
@@ -134,12 +136,11 @@ function abrirFormulario(id = null) {
   document.getElementById('form-titulo').textContent = m ? 'Editar manual' : 'Nuevo manual';
   document.getElementById('form-nota').hidden = !!m;
   document.getElementById('form-error').hidden = true;
-  document.getElementById('m-codigo').value = m ? m.codigo : '';
   document.getElementById('m-titulo').value = m ? m.titulo : '';
   document.getElementById('m-area').value = m ? (m.area || '') : '';
   document.getElementById('m-descripcion').value = m ? (m.descripcion || '') : '';
   mostrarVista('vista-form');
-  document.getElementById('m-codigo').focus();
+  document.getElementById('m-titulo').focus();
 }
 
 async function guardarManual(e) {
@@ -150,14 +151,13 @@ async function guardarManual(e) {
 
   const payload = {
     ...getCredenciales(),
-    codigo: document.getElementById('m-codigo').value.trim(),
     titulo: document.getElementById('m-titulo').value.trim(),
     area: document.getElementById('m-area').value.trim(),
     descripcion: document.getElementById('m-descripcion').value.trim(),
   };
 
-  if (!payload.codigo || !payload.titulo) {
-    error.textContent = 'El código y el título son obligatorios.';
+  if (!payload.titulo) {
+    error.textContent = 'El título es obligatorio.';
     error.hidden = false;
     return;
   }
@@ -196,6 +196,7 @@ async function borrarManual(id) {
   try {
     await callApi('deleteManual', { ...getCredenciales(), id });
     toast('Manual borrado.');
+    mostrarVista('vista-lista');
     await cargarManuales();
   } catch (err) {
     toast(err.message, 'error');
@@ -215,13 +216,15 @@ export function initManuales() {
   document.getElementById('btn-form-cancelar').addEventListener('click', () => mostrarVista('vista-lista'));
   document.getElementById('btn-volver').addEventListener('click', () => mostrarVista('vista-lista'));
 
-  // Delegación de eventos en las tarjetas.
-  document.getElementById('lista-manuales').addEventListener('click', (e) => {
-    const btn = e.target.closest('button[data-accion]');
-    if (!btn) return;
-    const id = btn.closest('[data-id]').dataset.id;
-    if (btn.dataset.accion === 'ver') verManual(id);
-    else if (btn.dataset.accion === 'editar') abrirFormulario(id);
-    else if (btn.dataset.accion === 'borrar') borrarManual(id);
+  // Al hacer clic (o Enter) en una fila se abre el manual.
+  const lista = document.getElementById('lista-manuales');
+  lista.addEventListener('click', (e) => {
+    const tr = e.target.closest('tr[data-id]');
+    if (tr) verManual(tr.dataset.id);
+  });
+  lista.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const tr = e.target.closest('tr[data-id]');
+    if (tr) { e.preventDefault(); verManual(tr.dataset.id); }
   });
 }
