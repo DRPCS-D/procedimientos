@@ -96,7 +96,10 @@ function verManual(id) {
   btnEditarContenido.hidden = !esAdmin();
   btnEditarContenido.onclick = () => {
     const url = m.docUrl || (m.docId ? `https://docs.google.com/document/d/${encodeURIComponent(m.docId)}/edit` : null);
-    if (url) window.open(url, '_blank');
+    if (!url) return;
+    window.open(url, '_blank'); // abrir primero, dentro del gesto del usuario
+    // Registrar quién edita el contenido (sin bloquear la apertura del Doc).
+    callApi('marcarEdicion', { ...getCredenciales(), id: m.id }).catch(() => {});
   };
 
   mostrarVista('vista-ver');

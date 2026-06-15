@@ -51,6 +51,7 @@ function doPost(e) {
       case 'listManuales':  return handleListManuales_(body);
       case 'createManual':  return handleCreateManual_(body);
       case 'updateManual':  return handleUpdateManual_(body);
+      case 'marcarEdicion': return handleMarcarEdicion_(body);
       case 'deleteManual':  return handleDeleteManual_(body);
       case 'listUsuarios':  return handleListUsuarios_(body);
       case 'createUsuario': return handleCreateUsuario_(body);
@@ -118,9 +119,9 @@ function handleListManuales_(body) {
   for (var i = 1; i < rows.length; i++) {
     if (!String(rows[i][COL.id]).trim()) continue;
     var m = rowToManual_(rows[i]);
-    // "Modificado" se toma de la fecha real del Google Doc, no de la ficha.
+    // La FECHA de "modificado" sale de la modificación real del Google Doc.
+    // El "editado por" sale de la ficha: lo guarda quien pulsa "Editar contenido".
     m.fechaModificacion = fechaModDoc_(m.docId, m.fechaCreacion);
-    m.usuarioModificacion = '';
     manuales.push(m);
   }
   // Más recientes primero.
@@ -221,6 +222,30 @@ function handleUpdateManual_(body) {
   }
 
   return jsonOut_({ ok: true, manual: rowToManual_(filaPorId_(sheet, id).valores) });
+}
+
+/**
+ * Registra quién va a editar el contenido (al pulsar "Editar contenido").
+ * Solo guarda el "editado por"; la FECHA de modificación se sigue tomando
+ * de la última actualización real del Google Doc al listar.
+ */
+function handleMarcarEdicion_(body) {
+  var user = requireAdmin_(body);
+  var id = String(body.id || '').trim();
+  if (!id) throw new Error('Falta el identificador del manual.');
+
+  var sheet = getSheet_(SHEET_MANUALES);
+  var encontrada = filaPorId_(sheet, id);
+  if (!encontrada) throw new Error('El manual ya no existe.');
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    sheet.getRange(encontrada.indice, COL.usuarioModificacion + 1).setValue(user.usuario);
+  } finally {
+    lock.releaseLock();
+  }
+  return jsonOut_({ ok: true });
 }
 
 function handleDeleteManual_(body) {
