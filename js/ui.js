@@ -33,6 +33,12 @@ export function esc(valor) {
     .replace(/"/g, '&quot;');
 }
 
+/** Recorta un texto a un máximo de caracteres, añadiendo "…" si se corta. */
+export function recortar(texto, max) {
+  const t = String(texto ?? '');
+  return t.length > max ? t.slice(0, max).trimEnd() + '…' : t;
+}
+
 /** Formatea una fecha ISO a algo legible en español; vacío si no hay. */
 export function fecha(iso) {
   if (!iso) return '';

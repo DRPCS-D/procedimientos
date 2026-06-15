@@ -1,6 +1,6 @@
 import { callApi } from './api.js';
 import { getCredenciales, esAdmin } from './auth.js';
-import { mostrarVista, toast, esc, fecha, confirmar } from './ui.js';
+import { mostrarVista, toast, esc, fecha, confirmar, recortar } from './ui.js';
 
 let manuales = [];        // caché de la última lista cargada
 let filtro = '';          // texto de búsqueda actual
@@ -48,10 +48,10 @@ function renderLista() {
       <tr data-id="${esc(m.id)}" tabindex="0">
         <td class="t-codigo">#${esc(m.codigo)}</td>
         <td>
-          <div class="t-titulo">${esc(m.titulo)}</div>
-          ${m.descripcion ? `<div class="t-desc">${esc(m.descripcion)}</div>` : ''}
+          <div class="t-titulo" title="${esc(m.titulo)}">${esc(recortar(m.titulo, 60))}</div>
+          ${m.descripcion ? `<div class="t-desc" title="${esc(m.descripcion)}">${esc(recortar(m.descripcion, 90))}</div>` : ''}
         </td>
-        <td>${esc(m.area || '')}</td>
+        <td title="${esc(m.area || '')}">${esc(recortar(m.area, 30))}</td>
         <td class="t-fecha">${creado}</td>
         <td class="t-fecha">${modificado}</td>
       </tr>`;

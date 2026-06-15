@@ -309,8 +309,9 @@ button { font: inherit; }
 .tabla tbody tr:focus { outline: 2px solid var(--color-primario); outline-offset: -2px; }
 .tabla tbody tr:last-child td { border-bottom: none; }
 .tabla .t-codigo { font-weight: 700; color: var(--color-primario-oscuro); white-space: nowrap; }
-.tabla .t-titulo { font-weight: 600; color: var(--color-texto); }
-.tabla .t-desc { color: var(--color-texto-suave); font-size: 0.8rem; margin-top: 0.15rem; }
+.tabla .t-titulo { font-weight: 600; color: var(--color-texto); overflow-wrap: anywhere; }
+.tabla .t-desc { color: var(--color-texto-suave); font-size: 0.8rem; margin-top: 0.15rem; overflow-wrap: anywhere; }
+.tabla td { overflow-wrap: anywhere; }
 .tabla .t-fecha { white-space: nowrap; color: var(--color-texto); }
 .tabla .t-por { color: var(--color-texto-suave); font-size: 0.78rem; }
 .tabla .t-vacio { color: var(--color-texto-suave); }
