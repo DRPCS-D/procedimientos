@@ -134,8 +134,8 @@ function handleListManuales_(body) {
 
 function handleCreateManual_(body) {
   var user = requireAdmin_(body);
-  var titulo = String(body.titulo || '').trim();
-  var area = String(body.area || '').trim();
+  var titulo = String(body.titulo || '').trim().slice(0, 20);
+  var area = String(body.area || '').trim().slice(0, 20);
   var descripcion = String(body.descripcion || '').trim();
 
   if (!titulo) throw new Error('El título es obligatorio.');
@@ -201,8 +201,8 @@ function handleUpdateManual_(body) {
   var id = String(body.id || '').trim();
   if (!id) throw new Error('Falta el identificador del manual.');
 
-  var titulo = String(body.titulo || '').trim();
-  var area = String(body.area || '').trim();
+  var titulo = String(body.titulo || '').trim().slice(0, 20);
+  var area = String(body.area || '').trim().slice(0, 20);
   var descripcion = String(body.descripcion || '').trim();
   if (!titulo) throw new Error('El título es obligatorio.');
 

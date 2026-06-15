@@ -48,10 +48,10 @@ function renderLista() {
       <tr data-id="${esc(m.id)}" tabindex="0">
         <td class="t-codigo">#${esc(m.codigo)}</td>
         <td>
-          <div class="t-titulo" title="${esc(m.titulo)}">${esc(recortar(m.titulo, 60))}</div>
+          <div class="t-titulo" title="${esc(m.titulo)}">${esc(recortar(m.titulo, 20))}</div>
           ${m.descripcion ? `<div class="t-desc" title="${esc(m.descripcion)}">${esc(recortar(m.descripcion, 90))}</div>` : ''}
         </td>
-        <td title="${esc(m.area || '')}">${esc(recortar(m.area, 30))}</td>
+        <td title="${esc(m.area || '')}">${esc(recortar(m.area, 20))}</td>
         <td class="t-fecha">${creado}</td>
         <td class="t-fecha">${modificado}</td>
       </tr>`;
