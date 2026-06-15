@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Procedimientos</title>
+  <title>fidelitygroup · Procedimientos</title>
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
 
   <!-- Cabecera (oculta hasta iniciar sesión) -->
   <header id="app-header" hidden>
-    <div class="brand">📋 Procedimientos</div>
+    <div class="brand" data-logo></div>
     <nav id="nav">
       <button type="button" class="nav-btn" data-vista="vista-lista">Manuales</button>
       <button type="button" class="nav-btn" id="nav-usuarios" data-vista="vista-usuarios" hidden>Usuarios</button>
@@ -25,7 +25,7 @@
     <!-- Vista: Login -->
     <section id="vista-login" class="vista vista-centrada" hidden>
       <form id="form-login" class="tarjeta">
-        <h1>📋 Procedimientos</h1>
+        <div class="logo-login" data-logo></div>
         <p class="subtitulo">Gestión de manuales e instrucciones</p>
         <label>Usuario
           <input type="text" id="login-usuario" autocomplete="username" required>

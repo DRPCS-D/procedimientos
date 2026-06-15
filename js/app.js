@@ -1,5 +1,6 @@
 import { getSession, login, logout, esAdmin } from './auth.js';
 import { mostrarVista, toast } from './ui.js';
+import { pintarLogos } from './logo.js';
 import { initManuales, cargarManuales } from './manuales.js';
 import { initUsuarios, cargarUsuarios } from './usuarios.js';
 
@@ -67,6 +68,7 @@ function navegar(vista) {
 }
 
 function init() {
+  pintarLogos();
   initManuales();
   initUsuarios();
 

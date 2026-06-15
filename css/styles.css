@@ -1,15 +1,24 @@
 :root {
+  /* Colores de marca fidelitygroup */
+  --color-primario: #2B4193;        /* Azul Francia 2 — RGB 43-65-147 */
+  --color-primario-oscuro: #1f3170;
+  --color-primario-tinte: rgba(43, 65, 147, 0.10);
+  --color-gris-marca: #C6C6C5;      /* Gris 30% — RGB 198-198-197 */
+
   --color-fondo: #f4f6f9;
   --color-superficie: #ffffff;
   --color-borde: #d9dee6;
   --color-texto: #1f2733;
   --color-texto-suave: #5c6675;
-  --color-primario: #2563eb;
-  --color-primario-oscuro: #1d4ed8;
   --color-peligro: #dc2626;
   --color-exito: #16a34a;
   --sombra: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.06);
   --radio: 10px;
+
+  /* Tipografía Helvetica Neue (condensada para títulos/logo) */
+  --fuente-texto: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --fuente-titulo: "Helvetica Neue Condensed", "HelveticaNeueLT Pro 67 Md Cn",
+                   "Arial Narrow", "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -19,11 +28,18 @@
 
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--fuente-texto);
   background: var(--color-fondo);
   color: var(--color-texto);
   line-height: 1.5;
 }
+
+/* Títulos y elementos de marca en Helvetica Neue Condensed */
+h1, h2, h3, .logo-word, .card-titulo, .nav-btn, .toolbar h2 {
+  font-family: var(--fuente-titulo);
+  font-stretch: condensed;
+}
+h1, h2, h3 { font-weight: 700; letter-spacing: -0.01em; }
 
 main {
   max-width: 1000px;
@@ -42,7 +58,21 @@ main {
   border-bottom: 1px solid var(--color-borde);
   box-shadow: var(--sombra);
 }
-.brand { font-weight: 700; font-size: 1.1rem; }
+.brand { font-size: 1.4rem; }
+
+/* ---------- Logo fidelitygroup ---------- */
+.logo { display: inline-flex; align-items: center; gap: 0.45em; line-height: 1; }
+.logo-word {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-transform: lowercase;
+  line-height: 1;
+  white-space: nowrap;
+}
+.lw-fidelity { color: var(--color-primario); }
+.lw-group { color: var(--color-gris-marca); font-weight: 600; }
+.logo-sphere { width: 1.1em; height: 1.1em; display: block; flex: none; }
+.logo-login { display: flex; justify-content: center; font-size: 2.4rem; margin-bottom: 0.2rem; }
 #nav { display: flex; gap: 0.25rem; }
 .nav-btn {
   border: none;
@@ -54,7 +84,7 @@ main {
   font-size: 0.95rem;
 }
 .nav-btn:hover { background: var(--color-fondo); }
-.nav-btn.activo { background: #e6efff; color: var(--color-primario-oscuro); font-weight: 600; }
+.nav-btn.activo { background: var(--color-primario-tinte); color: var(--color-primario-oscuro); font-weight: 600; }
 .user-box { margin-left: auto; display: flex; align-items: center; gap: 0.6rem; }
 #header-usuario { font-size: 0.9rem; color: var(--color-texto-suave); }
 
@@ -101,7 +131,7 @@ input, textarea, select {
 input:focus, textarea:focus, select:focus {
   outline: none;
   border-color: var(--color-primario);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  box-shadow: 0 0 0 3px rgba(43, 65, 147, 0.15);
 }
 textarea { resize: vertical; }
 
@@ -164,7 +194,7 @@ button { font: inherit; }
   font-size: 0.75rem;
   font-weight: 700;
   color: var(--color-primario-oscuro);
-  background: #e6efff;
+  background: var(--color-primario-tinte);
   padding: 0.1rem 0.5rem;
   border-radius: 999px;
   align-self: flex-start;
