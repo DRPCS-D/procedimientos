@@ -4,6 +4,15 @@ import { pintarLogos } from './logo.js';
 import { initManuales, cargarManuales } from './manuales.js';
 import { initUsuarios, cargarUsuarios } from './usuarios.js';
 
+/** Abre o cierra el menú lateral. */
+function setMenu(abierto) {
+  document.getElementById('menu-lateral').classList.toggle('abierto', abierto);
+  document.getElementById('menu-overlay').classList.toggle('abierto', abierto);
+  document.getElementById('menu-lateral').setAttribute('aria-hidden', String(!abierto));
+  document.getElementById('btn-menu').setAttribute('aria-expanded', String(abierto));
+}
+const cerrarMenu = () => setMenu(false);
+
 /** Entra a la aplicación con una sesión válida. */
 function entrarApp(sesion) {
   document.getElementById('app-header').hidden = false;
@@ -21,6 +30,7 @@ function entrarApp(sesion) {
 /** Sale de la aplicación y vuelve al login. */
 function salirApp() {
   logout();
+  cerrarMenu();
   document.getElementById('app-header').hidden = true;
   document.getElementById('form-login').reset();
   document.getElementById('login-error').hidden = true;
@@ -57,6 +67,7 @@ async function manejarLogin(e) {
 }
 
 function navegar(vista) {
+  cerrarMenu();
   if (vista === 'vista-usuarios') {
     if (!esAdmin()) return;
     mostrarVista('vista-usuarios');
@@ -74,6 +85,13 @@ function init() {
 
   document.getElementById('form-login').addEventListener('submit', manejarLogin);
   document.getElementById('btn-logout').addEventListener('click', salirApp);
+
+  // Menú lateral
+  document.getElementById('btn-menu').addEventListener('click', () =>
+    setMenu(!document.getElementById('menu-lateral').classList.contains('abierto')));
+  document.getElementById('btn-menu-cerrar').addEventListener('click', cerrarMenu);
+  document.getElementById('menu-overlay').addEventListener('click', cerrarMenu);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') cerrarMenu(); });
 
   for (const btn of document.querySelectorAll('.nav-btn')) {
     btn.addEventListener('click', () => navegar(btn.dataset.vista));

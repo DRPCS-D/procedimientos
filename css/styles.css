@@ -60,6 +60,83 @@ main {
 }
 .brand { font-size: 1.4rem; }
 
+/* ---------- Botón hamburguesa ---------- */
+.btn-menu {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  width: 40px;
+  height: 40px;
+  padding: 9px 8px;
+  border: 1px solid var(--color-borde);
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+}
+.btn-menu span {
+  display: block;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--color-primario);
+}
+.btn-menu:hover { background: var(--color-fondo); }
+
+/* ---------- Menú lateral ---------- */
+.menu-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 900;
+}
+.menu-overlay.abierto { opacity: 1; pointer-events: auto; }
+
+.menu-lateral {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: min(280px, 82vw);
+  background: var(--color-superficie);
+  box-shadow: 2px 0 16px rgba(16, 24, 40, 0.18);
+  transform: translateX(-100%);
+  transition: transform 0.25s ease;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  gap: 0.4rem;
+}
+.menu-lateral.abierto { transform: translateX(0); }
+
+.menu-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--color-borde);
+}
+.menu-cabecera #header-usuario { font-size: 0.95rem; font-weight: 600; color: var(--color-texto); }
+.btn-cerrar {
+  border: none;
+  background: none;
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--color-texto-suave);
+  padding: 0 0.25rem;
+}
+.btn-cerrar:hover { color: var(--color-texto); }
+
+.menu-nav { display: flex; flex-direction: column; gap: 0.25rem; }
+.menu-nav .nav-btn { text-align: left; width: 100%; padding: 0.7rem 0.8rem; font-size: 1.05rem; }
+.menu-salir { margin-top: auto; }
+
 /* ---------- Logo fidelitygroup ---------- */
 .logo { display: inline-flex; align-items: center; gap: 0.45em; line-height: 1; }
 .logo-word {
@@ -85,8 +162,6 @@ main {
 }
 .nav-btn:hover { background: var(--color-fondo); }
 .nav-btn.activo { background: var(--color-primario-tinte); color: var(--color-primario-oscuro); font-weight: 600; }
-.user-box { margin-left: auto; display: flex; align-items: center; gap: 0.6rem; }
-#header-usuario { font-size: 0.9rem; color: var(--color-texto-suave); }
 
 /* ---------- Vistas ---------- */
 .vista { animation: aparecer 0.15s ease; }
@@ -270,9 +345,6 @@ dialog h3 { margin: 0; }
 .toast.error { background: var(--color-peligro); color: #fff; }
 
 @media (max-width: 600px) {
-  #app-header { gap: 0.5rem; }
-  .user-box { width: 100%; order: 3; }
-  .brand { order: 1; }
-  #nav { order: 2; margin-left: auto; }
+  #app-header { gap: 0.6rem; }
   #ver-doc { height: 65vh; }
 }

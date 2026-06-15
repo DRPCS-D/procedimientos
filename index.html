@@ -10,16 +10,25 @@
 
   <!-- Cabecera (oculta hasta iniciar sesión) -->
   <header id="app-header" hidden>
+    <button type="button" id="btn-menu" class="btn-menu" aria-label="Abrir menú" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
     <div class="brand" data-logo></div>
-    <nav id="nav">
-      <button type="button" class="nav-btn" data-vista="vista-lista">Manuales</button>
-      <button type="button" class="nav-btn" id="nav-usuarios" data-vista="vista-usuarios" hidden>Usuarios</button>
-    </nav>
-    <div class="user-box">
-      <span id="header-usuario"></span>
-      <button type="button" id="btn-logout" class="btn-secundario">Salir</button>
-    </div>
   </header>
+
+  <!-- Menú lateral deslizable -->
+  <div id="menu-overlay" class="menu-overlay"></div>
+  <aside id="menu-lateral" class="menu-lateral" aria-hidden="true">
+    <div class="menu-cabecera">
+      <span id="header-usuario"></span>
+      <button type="button" id="btn-menu-cerrar" class="btn-cerrar" aria-label="Cerrar menú">&times;</button>
+    </div>
+    <nav id="nav" class="menu-nav">
+      <button type="button" class="nav-btn" data-vista="vista-lista">📄 Manuales</button>
+      <button type="button" class="nav-btn" id="nav-usuarios" data-vista="vista-usuarios" hidden>👥 Usuarios</button>
+    </nav>
+    <button type="button" id="btn-logout" class="btn-secundario menu-salir">Salir</button>
+  </aside>
 
   <main>
     <!-- Vista: Login -->
