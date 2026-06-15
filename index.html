@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Procedimientos</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- Cabecera (oculta hasta iniciar sesión) -->
+  <header id="app-header" hidden>
+    <div class="brand">📋 Procedimientos</div>
+    <nav id="nav">
+      <button type="button" class="nav-btn" data-vista="vista-lista">Manuales</button>
+      <button type="button" class="nav-btn" id="nav-usuarios" data-vista="vista-usuarios" hidden>Usuarios</button>
+    </nav>
+    <div class="user-box">
+      <span id="header-usuario"></span>
+      <button type="button" id="btn-logout" class="btn-secundario">Salir</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Vista: Login -->
+    <section id="vista-login" class="vista vista-centrada" hidden>
+      <form id="form-login" class="tarjeta">
+        <h1>📋 Procedimientos</h1>
+        <p class="subtitulo">Gestión de manuales e instrucciones</p>
+        <label>Usuario
+          <input type="text" id="login-usuario" autocomplete="username" required>
+        </label>
+        <label>Contraseña
+          <input type="password" id="login-password" autocomplete="current-password" required>
+        </label>
+        <p id="login-error" class="error" hidden></p>
+        <button type="submit" id="btn-login" class="btn-primario">Entrar</button>
+      </form>
+    </section>
+
+    <!-- Vista: Lista de manuales -->
+    <section id="vista-lista" class="vista" hidden>
+      <div class="toolbar">
+        <input type="search" id="busqueda" placeholder="Buscar por código, título o área...">
+        <button type="button" id="btn-nuevo" class="btn-primario" hidden>+ Nuevo manual</button>
+      </div>
+      <div id="lista-manuales" class="tarjetas"></div>
+      <p id="lista-cargando" class="aviso" hidden>Cargando…</p>
+      <p id="lista-vacia" class="aviso" hidden>No hay manuales que coincidan.</p>
+    </section>
+
+    <!-- Vista: Ver un manual -->
+    <section id="vista-ver" class="vista" hidden>
+      <button type="button" id="btn-volver" class="btn-volver">← Volver</button>
+      <div id="ver-meta" class="meta"></div>
+      <div class="ver-acciones">
+        <button type="button" id="btn-imprimir" class="btn-secundario">🖨 Imprimir / PDF</button>
+        <button type="button" id="btn-editar-contenido" class="btn-secundario" hidden>✎ Editar contenido</button>
+      </div>
+      <div class="doc-contenedor">
+        <iframe id="ver-doc" title="Contenido del manual" loading="lazy"></iframe>
+      </div>
+    </section>
+
+    <!-- Vista: Formulario crear/editar manual -->
+    <section id="vista-form" class="vista vista-centrada" hidden>
+      <form id="form-manual" class="tarjeta">
+        <button type="button" id="btn-form-cancelar" class="btn-volver">← Cancelar</button>
+        <h2 id="form-titulo">Nuevo manual</h2>
+        <label>Código
+          <input type="number" id="m-codigo" min="0" step="1" required>
+        </label>
+        <label>Título
+          <input type="text" id="m-titulo" maxlength="200" required>
+        </label>
+        <label>Área
+          <input type="text" id="m-area" list="areas-list" maxlength="100">
+          <datalist id="areas-list"></datalist>
+        </label>
+        <label>Descripción
+          <textarea id="m-descripcion" rows="3" maxlength="1000"></textarea>
+        </label>
+        <p id="form-error" class="error" hidden></p>
+        <button type="submit" id="btn-guardar" class="btn-primario">Guardar</button>
+        <p class="nota" id="form-nota" hidden>
+          Al guardar se creará automáticamente un Google Doc en tu Drive para el contenido.
+        </p>
+      </form>
+    </section>
+
+    <!-- Vista: Gestión de usuarios (solo Admin) -->
+    <section id="vista-usuarios" class="vista" hidden>
+      <div class="toolbar">
+        <h2>Usuarios</h2>
+        <button type="button" id="btn-nuevo-usuario" class="btn-primario">+ Nuevo usuario</button>
+      </div>
+      <div id="lista-usuarios" class="tarjetas"></div>
+      <p id="usuarios-cargando" class="aviso" hidden>Cargando…</p>
+    </section>
+  </main>
+
+  <!-- Diálogo crear/editar usuario -->
+  <dialog id="dialog-usuario">
+    <form id="form-usuario" method="dialog">
+      <h3 id="usuario-dialog-titulo">Nuevo usuario</h3>
+      <label>Usuario
+        <input type="text" id="u-usuario" autocomplete="off" required>
+      </label>
+      <label>Contraseña
+        <input type="text" id="u-password" autocomplete="off">
+        <small id="u-password-ayuda" class="nota"></small>
+      </label>
+      <label>Rol
+        <select id="u-rol">
+          <option value="user">User (ver e imprimir)</option>
+          <option value="admin">Admin (todo)</option>
+        </select>
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" id="u-activo" checked> Activo
+      </label>
+      <p id="usuario-error" class="error" hidden></p>
+      <div class="dialog-acciones">
+        <button type="button" id="btn-usuario-cancelar" class="btn-secundario">Cancelar</button>
+        <button type="submit" id="btn-usuario-guardar" class="btn-primario">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Diálogo de confirmación -->
+  <dialog id="dialog-confirmar">
+    <form method="dialog">
+      <h3 id="confirmar-titulo">Confirmar</h3>
+      <p id="confirmar-mensaje"></p>
+      <div class="dialog-acciones">
+        <button type="button" id="btn-confirmar-no" class="btn-secundario">Cancelar</button>
+        <button type="button" id="btn-confirmar-si" class="btn-peligro">Eliminar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
