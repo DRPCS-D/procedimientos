@@ -339,6 +339,15 @@ button { font: inherit; }
 .meta dl { display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 1rem; margin: 0.5rem 0 0; font-size: 0.88rem; }
 .meta dt { color: var(--color-texto-suave); font-weight: 600; }
 .meta dd { margin: 0; }
+.meta-acciones {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--color-borde);
+}
 .ver-acciones { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
 .doc-contenedor {
   background: var(--color-superficie);

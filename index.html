@@ -61,12 +61,16 @@
     <!-- Vista: Ver un manual -->
     <section id="vista-ver" class="vista" hidden>
       <button type="button" id="btn-volver" class="btn-volver">← Volver</button>
-      <div id="ver-meta" class="meta"></div>
+      <div class="meta">
+        <div id="ver-meta"></div>
+        <div class="meta-acciones">
+          <button type="button" id="btn-ver-editar" class="btn-secundario" hidden>✏️ Editar datos</button>
+          <button type="button" id="btn-ver-borrar" class="btn-peligro" hidden>🗑 Borrar</button>
+        </div>
+      </div>
       <div class="ver-acciones">
         <button type="button" id="btn-imprimir" class="btn-secundario">🖨 Imprimir / PDF</button>
         <button type="button" id="btn-editar-contenido" class="btn-secundario" hidden>✎ Editar contenido</button>
-        <button type="button" id="btn-ver-editar" class="btn-secundario" hidden>✏️ Editar datos</button>
-        <button type="button" id="btn-ver-borrar" class="btn-peligro" hidden>🗑 Borrar</button>
       </div>
       <div class="doc-contenedor">
         <iframe id="ver-doc" title="Contenido del manual" loading="lazy"></iframe>
