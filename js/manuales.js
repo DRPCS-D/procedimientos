@@ -98,6 +98,10 @@ function verManual(id) {
   `;
 
   const iframe = document.getElementById('ver-doc');
+  const docCont = iframe.closest('.doc-contenedor');
+  // Tapar el iframe (aún muestra el Doc anterior) hasta que cargue el nuevo.
+  docCont.classList.add('cargando');
+  iframe.onload = () => docCont.classList.remove('cargando');
   iframe.src = m.docId ? `https://docs.google.com/document/d/${encodeURIComponent(m.docId)}/preview` : 'about:blank';
 
   const btnImprimir = document.getElementById('btn-imprimir');

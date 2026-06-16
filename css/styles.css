@@ -354,6 +354,7 @@ button { font: inherit; }
 .meta-botones { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-left: auto; }
 .ver-acciones { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
 .doc-contenedor {
+  position: relative;
   background: var(--color-superficie);
   border: 1px solid var(--color-borde);
   border-radius: var(--radio);
@@ -361,6 +362,28 @@ button { font: inherit; }
   box-shadow: var(--sombra);
 }
 #ver-doc { width: 100%; height: 75vh; border: none; display: block; }
+/* Mientras carga el nuevo Doc se oculta el iframe (que aún muestra el anterior)
+   y se cubre con un velo + spinner hasta que dispara su evento load. */
+.doc-contenedor.cargando #ver-doc { visibility: hidden; }
+.doc-cargando {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-superficie);
+}
+.doc-contenedor.cargando .doc-cargando { display: flex; }
+.doc-cargando::after {
+  content: "";
+  width: 38px;
+  height: 38px;
+  border: 3px solid var(--color-borde);
+  border-top-color: var(--color-primario);
+  border-radius: 50%;
+  animation: doc-spin 0.7s linear infinite;
+}
+@keyframes doc-spin { to { transform: rotate(360deg); } }
 
 /* ---------- Diálogos ---------- */
 dialog {
