@@ -339,15 +339,19 @@ button { font: inherit; }
 .meta dl { display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 1rem; margin: 0.5rem 0 0; font-size: 0.88rem; }
 .meta dt { color: var(--color-texto-suave); font-weight: 600; }
 .meta dd { margin: 0; }
+.meta .card-desc { overflow-wrap: anywhere; }
 .meta-acciones {
   display: flex;
-  gap: 0.5rem;
-  justify-content: flex-end;
+  gap: 0.75rem;
+  justify-content: space-between;
+  align-items: flex-end;
   flex-wrap: wrap;
   margin-top: 0.85rem;
   padding-top: 0.85rem;
   border-top: 1px solid var(--color-borde);
 }
+.meta-fechas { font-size: 0.8rem; color: var(--color-texto-suave); display: flex; flex-direction: column; gap: 0.15rem; }
+.meta-botones { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-left: auto; }
 .ver-acciones { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
 .doc-contenedor {
   background: var(--color-superficie);

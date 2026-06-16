@@ -90,11 +90,12 @@ function verManual(id) {
     <span class="card-codigo">#${esc(m.codigo)}</span>
     <h2>${esc(m.titulo)}</h2>
     ${m.descripcion ? `<p class="card-desc">${esc(m.descripcion)}</p>` : ''}
-    <dl>
-      ${m.area ? `<dt>Área</dt><dd>${esc(m.area)}</dd>` : ''}
-      <dt>Creado</dt><dd>${esc(fecha(m.fechaCreacion))}${m.usuarioCreador ? ' por ' + esc(m.usuarioCreador.toUpperCase()) : ''}</dd>
-      ${m.fechaModificacion ? `<dt>Modificado</dt><dd>${esc(fecha(m.fechaModificacion))}${m.usuarioModificacion ? ' por ' + esc(m.usuarioModificacion.toUpperCase()) : ''}</dd>` : ''}
-    </dl>
+    ${m.area ? `<dl><dt>Área</dt><dd>${esc(m.area)}</dd></dl>` : ''}
+  `;
+
+  document.getElementById('ver-fechas').innerHTML = `
+    <div>Creado: ${esc(fecha(m.fechaCreacion))}${m.usuarioCreador ? ' por ' + esc(m.usuarioCreador.toUpperCase()) : ''}</div>
+    ${m.fechaModificacion ? `<div>Modificado: ${esc(fecha(m.fechaModificacion))}${m.usuarioModificacion ? ' por ' + esc(m.usuarioModificacion.toUpperCase()) : ''}</div>` : ''}
   `;
 
   const iframe = document.getElementById('ver-doc');
