@@ -65,7 +65,7 @@ async function buscarFragmentos(embedding: number[], pregunta: string, area: str
     body: JSON.stringify({
       query_embedding: embedding,
       query_text: pregunta,
-      match_count: 6,
+      match_count: 8,
       filtro_area: area,
     }),
   });
@@ -141,14 +141,18 @@ Deno.serve(async (req) => {
 
     const fuentes = [...fuentesMap.values()].sort((a, b) => a.n - b.n);
 
-    // 4) Generación con guardrail
+    // 4) Generación: servicial pero anclado al contexto.
     const sistema = [
-      'Eres el asistente de conocimiento interno de la empresa.',
-      'Responde ÚNICAMENTE con la información del CONTEXTO proporcionado.',
-      'Si la respuesta no está en el contexto, responde exactamente:',
+      'Eres el asistente de conocimiento interno de la empresa. Respondes preguntas del personal',
+      'usando el CONTEXTO, que son extractos de los manuales y datos internos recuperados para esta consulta.',
+      'Sé servicial y resuelve la intención del usuario, no exijas que la pregunta sea literal.',
+      'Si la consulta es vaga o solo menciona un tema (por ejemplo "gift card" o "contactos"),',
+      'resume e indica la información relevante que encuentres sobre ese tema en el contexto.',
+      'Si hay varias fuentes relacionadas, menciónalas. Cita las fuentes que uses con su número',
+      'entre corchetes, por ejemplo [1].',
+      'Solo si en el CONTEXTO no hay absolutamente nada relacionado con la consulta, responde:',
       '"No encuentro esa información en los manuales."',
-      'Cita las fuentes que uses con su número entre corchetes, por ejemplo [1].',
-      'Responde en español, de forma clara y concisa.',
+      'No inventes datos que no estén en el contexto. Responde en español, claro y conciso.',
     ].join(' ');
 
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
