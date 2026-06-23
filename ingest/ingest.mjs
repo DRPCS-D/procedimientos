@@ -173,6 +173,7 @@ async function indexarFuente(sourceType, sourceId, meta, texto) {
     source_type: sourceType,
     source_id: sourceId,
     chunk_index: idx,
+    source_rev: meta.source_rev || '',
     codigo: meta.codigo || null,
     titulo: meta.titulo || null,
     area: meta.area || null,
@@ -199,7 +200,7 @@ async function main() {
       .filter(Boolean).join('\n');
     const texto = [cabecera, m.texto].filter(Boolean).join('\n\n');
     const n = await indexarFuente('doc', m.id, {
-      codigo: m.codigo, titulo: m.titulo, area: m.area, doc_url: m.docUrl,
+      codigo: m.codigo, titulo: m.titulo, area: m.area, doc_url: m.docUrl, source_rev: m.actualizado,
     }, texto);
     totalChunks += n;
     console.log(`  doc ${m.codigo || m.id} "${m.titulo}" → ${n} fragmentos`);

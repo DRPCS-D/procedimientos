@@ -32,6 +32,14 @@ var SHEET_USUARIOS = 'Usuarios';
 // Ejemplo: var DATA_SHEETS = ['Precios', 'Contactos'];
 var DATA_SHEETS = [];
 
+// Reindexado automático del asistente (chatbot). Rellena estos dos valores con
+// la URL de la Edge Function "reindex" de Supabase y el secreto compartido
+// (el mismo que pondrás como secret REINDEX_SECRET en Supabase). Si quedan
+// vacíos, el reindexado automático simplemente no se ejecuta (no da error).
+//   REINDEX_URL: https://TU-PROYECTO.supabase.co/functions/v1/reindex
+var REINDEX_URL = '';
+var REINDEX_SECRET = '';
+
 // Índices de columnas (0-based) de la pestaña Procedimientos.
 var COL = {
   id: 0, codigo: 1, titulo: 2, descripcion: 3, area: 4,
@@ -189,6 +197,10 @@ function handleCreateManual_(body) {
     lock.releaseLock();
   }
 
+  // Reindexa el manual recién creado en el asistente (best-effort).
+  var nuevo = recopilarContenido_(id);
+  enviarReindex_({ manuales: nuevo.manuales });
+
   return jsonOut_({ ok: true, manual: rowToManual_(filaPorId_(sheet, id).valores) });
 }
 
@@ -282,6 +294,9 @@ function handleDeleteManual_(body) {
     try { DriveApp.getFileById(docId).setTrashed(true); } catch (e) {}
   }
 
+  // Quita el manual del índice del asistente (best-effort).
+  enviarReindex_({ eliminar: [id] });
+
   return jsonOut_({ ok: true });
 }
 
@@ -298,11 +313,22 @@ function handleDeleteManual_(body) {
  */
 function handleContenidoParaIndexar_(body) {
   requireAdmin_(body);
+  var contenido = recopilarContenido_(null);
+  return jsonOut_({ ok: true, manuales: contenido.manuales, datos: contenido.datos });
+}
 
+/**
+ * Recopila el contenido a indexar: el texto plano de los manuales (exportado de
+ * sus Google Docs) + las filas de DATA_SHEETS. Si se pasa soloId, devuelve solo
+ * ese manual y sin datos (para reindexar puntualmente al crear/editar uno).
+ */
+function recopilarContenido_(soloId) {
   var manuales = [];
   var rows = getSheet_(SHEET_MANUALES).getDataRange().getValues();
   for (var i = 1; i < rows.length; i++) {
-    if (!String(rows[i][COL.id]).trim()) continue;
+    var idFila = String(rows[i][COL.id]).trim();
+    if (!idFila) continue;
+    if (soloId && idFila !== String(soloId)) continue;
     var m = rowToManual_(rows[i]);
     var texto = '';
     var actualizado = '';
@@ -314,44 +340,70 @@ function handleContenidoParaIndexar_(body) {
       } catch (e2) {}
     }
     manuales.push({
-      id: m.id,
-      codigo: m.codigo,
-      titulo: m.titulo,
-      area: m.area,
-      descripcion: m.descripcion,
-      docId: m.docId,
-      docUrl: m.docUrl,
-      fechaCreacion: m.fechaCreacion,
-      actualizado: actualizado,
-      texto: texto
+      id: m.id, codigo: m.codigo, titulo: m.titulo, area: m.area,
+      descripcion: m.descripcion, docId: m.docId, docUrl: m.docUrl,
+      fechaCreacion: m.fechaCreacion, actualizado: actualizado, texto: texto
     });
   }
 
   var datos = [];
-  for (var d = 0; d < DATA_SHEETS.length; d++) {
-    var nombre = DATA_SHEETS[d];
-    var hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(nombre);
-    if (!hoja) continue;
-    var valores = hoja.getDataRange().getValues();
-    if (valores.length < 2) continue;
-    var cabeceras = valores[0].map(function (c) { return String(c).trim(); });
-    for (var r = 1; r < valores.length; r++) {
-      var partes = [];
-      var vacia = true;
-      for (var c = 0; c < cabeceras.length; c++) {
-        var val = String(valores[r][c]).trim();
-        if (val) { vacia = false; partes.push((cabeceras[c] || ('col' + c)) + ': ' + val); }
+  if (!soloId) {
+    for (var d = 0; d < DATA_SHEETS.length; d++) {
+      var nombre = DATA_SHEETS[d];
+      var hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(nombre);
+      if (!hoja) continue;
+      var valores = hoja.getDataRange().getValues();
+      if (valores.length < 2) continue;
+      var cabeceras = valores[0].map(function (c) { return String(c).trim(); });
+      for (var r = 1; r < valores.length; r++) {
+        var partes = [];
+        var vacia = true;
+        for (var c = 0; c < cabeceras.length; c++) {
+          var val = String(valores[r][c]).trim();
+          if (val) { vacia = false; partes.push((cabeceras[c] || ('col' + c)) + ': ' + val); }
+        }
+        if (vacia) continue;
+        datos.push({ sheet: nombre, fila: r + 1, texto: partes.join('; ') });
       }
-      if (vacia) continue;
-      datos.push({
-        sheet: nombre,
-        fila: r + 1,
-        texto: partes.join('; ')
-      });
     }
   }
 
-  return jsonOut_({ ok: true, manuales: manuales, datos: datos });
+  return { manuales: manuales, datos: datos };
+}
+
+/**
+ * Envía un payload a la Edge Function "reindex" de Supabase. Es best-effort:
+ * nunca interrumpe la operación principal (crear/borrar) si falla.
+ */
+function enviarReindex_(payload) {
+  if (!REINDEX_URL || !REINDEX_SECRET) return;
+  try {
+    payload.secret = REINDEX_SECRET;
+    UrlFetchApp.fetch(REINDEX_URL, {
+      method: 'post',
+      contentType: 'application/json',
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    });
+  } catch (e) { /* el reindexado no debe romper la operación */ }
+}
+
+/** Reindexado completo. Lo llama el trigger horario (capta ediciones de Docs). */
+function reindexarAsistente_() {
+  var contenido = recopilarContenido_(null);
+  enviarReindex_({ manuales: contenido.manuales, datos: contenido.datos, full: true });
+}
+
+/**
+ * Ejecuta esta función UNA vez (botón ▶ del editor) para crear el trigger que
+ * reindexa automáticamente cada hora. Evita duplicados.
+ */
+function instalarTriggerReindex() {
+  var triggers = ScriptApp.getProjectTriggers();
+  for (var i = 0; i < triggers.length; i++) {
+    if (triggers[i].getHandlerFunction() === 'reindexarAsistente_') ScriptApp.deleteTrigger(triggers[i]);
+  }
+  ScriptApp.newTrigger('reindexarAsistente_').timeBased().everyHours(1).create();
 }
 
 // ---------- Usuarios ----------

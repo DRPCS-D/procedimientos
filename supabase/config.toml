@@ -5,3 +5,8 @@
 # llegar a nuestro código.
 [functions.chat]
 verify_jwt = false
+
+# La función "reindex" se protege con su propio secreto (REINDEX_SECRET) que
+# envía Apps Script; también se desactiva el JWT de la plataforma.
+[functions.reindex]
+verify_jwt = false
