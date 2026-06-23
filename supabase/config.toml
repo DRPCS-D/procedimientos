@@ -1,0 +1,7 @@
+# Configuración del proyecto Supabase (CLI).
+# La función "chat" usa su propia autenticación (el login del Apps Script en el
+# cuerpo de la petición), por lo que se desactiva la verificación de JWT de la
+# plataforma. Sin esto, Supabase rechazaría las peticiones con 401 antes de
+# llegar a nuestro código.
+[functions.chat]
+verify_jwt = false

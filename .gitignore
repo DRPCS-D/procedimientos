@@ -1,3 +1,9 @@
 .DS_Store
 Thumbs.db
 .claude/
+
+# Secretos del backend RAG: nunca subir claves de API
+.env
+*.env
+!*.env.example
+ingest/node_modules/

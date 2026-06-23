@@ -26,6 +26,12 @@ var FOLDER_ID = 'PEGA_AQUI_EL_ID_DE_LA_CARPETA';
 var SHEET_MANUALES = 'Procedimientos';
 var SHEET_USUARIOS = 'Usuarios';
 
+// Pestañas con datos estructurados que el chatbot debe conocer (además de los
+// manuales). Deja la lista vacía para indexar solo los manuales. Cada pestaña
+// debe tener una fila de encabezados y debajo las filas de datos.
+// Ejemplo: var DATA_SHEETS = ['Precios', 'Contactos'];
+var DATA_SHEETS = [];
+
 // Índices de columnas (0-based) de la pestaña Procedimientos.
 var COL = {
   id: 0, codigo: 1, titulo: 2, descripcion: 3, area: 4,
@@ -57,6 +63,7 @@ function doPost(e) {
       case 'createUsuario': return handleCreateUsuario_(body);
       case 'updateUsuario': return handleUpdateUsuario_(body);
       case 'deleteUsuario': return handleDeleteUsuario_(body);
+      case 'contenidoParaIndexar': return handleContenidoParaIndexar_(body);
       default:              return jsonOut_({ ok: false, error: 'Acción desconocida' });
     }
   } catch (err) {
@@ -276,6 +283,75 @@ function handleDeleteManual_(body) {
   }
 
   return jsonOut_({ ok: true });
+}
+
+// ---------- Contenido para el chatbot (RAG) ----------
+
+/**
+ * Devuelve todo el contenido que el chatbot debe indexar: el texto plano de
+ * cada manual (exportado de su Google Doc) + sus metadatos, y las filas de las
+ * pestañas de datos configuradas en DATA_SHEETS.
+ *
+ * Solo Admin. Lo consume el pipeline de ingesta (ver ingest/ingest.mjs), que
+ * genera los embeddings y los sube a Supabase. Incluye "actualizado" (última
+ * modificación real del Doc) para permitir reindexado incremental.
+ */
+function handleContenidoParaIndexar_(body) {
+  requireAdmin_(body);
+
+  var manuales = [];
+  var rows = getSheet_(SHEET_MANUALES).getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    if (!String(rows[i][COL.id]).trim()) continue;
+    var m = rowToManual_(rows[i]);
+    var texto = '';
+    var actualizado = '';
+    if (m.docId) {
+      try { texto = DocumentApp.openById(m.docId).getBody().getText(); } catch (e) { texto = ''; }
+      try {
+        var last = DriveApp.getFileById(m.docId).getLastUpdated();
+        if (last) actualizado = last.toISOString();
+      } catch (e2) {}
+    }
+    manuales.push({
+      id: m.id,
+      codigo: m.codigo,
+      titulo: m.titulo,
+      area: m.area,
+      descripcion: m.descripcion,
+      docId: m.docId,
+      docUrl: m.docUrl,
+      fechaCreacion: m.fechaCreacion,
+      actualizado: actualizado,
+      texto: texto
+    });
+  }
+
+  var datos = [];
+  for (var d = 0; d < DATA_SHEETS.length; d++) {
+    var nombre = DATA_SHEETS[d];
+    var hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(nombre);
+    if (!hoja) continue;
+    var valores = hoja.getDataRange().getValues();
+    if (valores.length < 2) continue;
+    var cabeceras = valores[0].map(function (c) { return String(c).trim(); });
+    for (var r = 1; r < valores.length; r++) {
+      var partes = [];
+      var vacia = true;
+      for (var c = 0; c < cabeceras.length; c++) {
+        var val = String(valores[r][c]).trim();
+        if (val) { vacia = false; partes.push((cabeceras[c] || ('col' + c)) + ': ' + val); }
+      }
+      if (vacia) continue;
+      datos.push({
+        sheet: nombre,
+        fila: r + 1,
+        texto: partes.join('; ')
+      });
+    }
+  }
+
+  return jsonOut_({ ok: true, manuales: manuales, datos: datos });
 }
 
 // ---------- Usuarios ----------

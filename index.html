@@ -36,6 +36,7 @@
       <button type="button" id="btn-menu-cerrar" class="btn-cerrar" aria-label="Cerrar menú">&times;</button>
     </div>
     <nav id="nav" class="menu-nav">
+      <button type="button" class="nav-btn" data-vista="vista-chat">💬 Asistente</button>
       <button type="button" class="nav-btn" data-vista="vista-lista">📄 Manuales</button>
       <button type="button" class="nav-btn" id="nav-usuarios" data-vista="vista-usuarios" hidden>👥 Usuarios</button>
     </nav>
@@ -57,6 +58,23 @@
         <p id="login-error" class="error" hidden></p>
         <button type="submit" id="btn-login" class="btn-primario">Entrar</button>
       </form>
+    </section>
+
+    <!-- Vista: Asistente (chatbot RAG) -->
+    <section id="vista-chat" class="vista" hidden>
+      <div class="chat">
+        <div id="chat-mensajes" class="chat-mensajes">
+          <div class="chat-bienvenida">
+            <div class="chat-bienvenida-logo" data-logo></div>
+            <p>Pregúntame sobre los procedimientos e instrucciones de la empresa.</p>
+            <p class="nota">Respondo con la información de los manuales y enlazo a la fuente.</p>
+          </div>
+        </div>
+        <form id="chat-form" class="chat-form" autocomplete="off">
+          <input type="text" id="chat-input" placeholder="Escribe tu pregunta…" required>
+          <button type="submit" id="chat-enviar" class="btn-primario" aria-label="Enviar">➤</button>
+        </form>
+      </div>
     </section>
 
     <!-- Vista: Lista de manuales -->

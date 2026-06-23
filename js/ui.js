@@ -1,4 +1,4 @@
-const VISTAS = ['vista-login', 'vista-lista', 'vista-ver', 'vista-form', 'vista-usuarios'];
+const VISTAS = ['vista-login', 'vista-chat', 'vista-lista', 'vista-ver', 'vista-form', 'vista-usuarios'];
 
 /** Muestra una sola vista y oculta el resto. */
 export function mostrarVista(id) {

@@ -3,6 +3,7 @@ import { mostrarVista, toast } from './ui.js';
 import { pintarLogos } from './logo.js';
 import { initManuales, cargarManuales } from './manuales.js';
 import { initUsuarios, cargarUsuarios } from './usuarios.js';
+import { initChat } from './chat.js';
 
 /** Abre o cierra el menú lateral. */
 function setMenu(abierto) {
@@ -72,6 +73,9 @@ function navegar(vista) {
     if (!esAdmin()) return;
     mostrarVista('vista-usuarios');
     cargarUsuarios();
+  } else if (vista === 'vista-chat') {
+    mostrarVista('vista-chat');
+    document.getElementById('chat-input').focus();
   } else {
     mostrarVista('vista-lista');
     cargarManuales();
@@ -82,6 +86,7 @@ function init() {
   pintarLogos();
   initManuales();
   initUsuarios();
+  initChat();
 
   document.getElementById('form-login').addEventListener('submit', manejarLogin);
   document.getElementById('btn-logout').addEventListener('click', salirApp);

@@ -4,7 +4,7 @@
 //   - Resto de recursos propios (css/js/iconos): stale-while-revalidate.
 //   - Peticiones a otros orígenes (Apps Script, Google Docs): no se interceptan.
 
-const CACHE = 'procedimientos-v1';
+const CACHE = 'procedimientos-v2';
 const APP_SHELL = [
   './',
   './index.html',
@@ -13,6 +13,7 @@ const APP_SHELL = [
   './js/app.js',
   './js/api.js',
   './js/auth.js',
+  './js/chat.js',
   './js/config.js',
   './js/logo.js',
   './js/manuales.js',
