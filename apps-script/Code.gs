@@ -376,16 +376,22 @@ function recopilarContenido_(soloId) {
  * nunca interrumpe la operación principal (crear/borrar) si falla.
  */
 function enviarReindex_(payload) {
-  if (!REINDEX_URL || !REINDEX_SECRET) return;
+  if (!REINDEX_URL || !REINDEX_SECRET) {
+    Logger.log('Reindex OMITIDO: falta REINDEX_URL o REINDEX_SECRET en Code.gs');
+    return;
+  }
   try {
     payload.secret = REINDEX_SECRET;
-    UrlFetchApp.fetch(REINDEX_URL, {
+    var resp = UrlFetchApp.fetch(REINDEX_URL, {
       method: 'post',
       contentType: 'application/json',
       payload: JSON.stringify(payload),
       muteHttpExceptions: true
     });
-  } catch (e) { /* el reindexado no debe romper la operación */ }
+    Logger.log('Reindex HTTP ' + resp.getResponseCode() + ': ' + resp.getContentText());
+  } catch (e) {
+    Logger.log('Reindex ERROR: ' + e);
+  }
 }
 
 /**
