@@ -388,22 +388,28 @@ function enviarReindex_(payload) {
   } catch (e) { /* el reindexado no debe romper la operación */ }
 }
 
-/** Reindexado completo. Lo llama el trigger horario (capta ediciones de Docs). */
-function reindexarAsistente_() {
+/**
+ * Reindexado completo. Lo llama el trigger horario (capta ediciones de Docs) y
+ * puedes ejecutarla a mano desde el editor (▶) para reindexar al instante.
+ * Sin guion bajo final para que aparezca en el desplegable de funciones.
+ */
+function reindexarAsistente() {
   var contenido = recopilarContenido_(null);
   enviarReindex_({ manuales: contenido.manuales, datos: contenido.datos, full: true });
 }
 
 /**
  * Ejecuta esta función UNA vez (botón ▶ del editor) para crear el trigger que
- * reindexa automáticamente cada hora. Evita duplicados.
+ * reindexa automáticamente cada hora. Evita duplicados (incluye el nombre
+ * antiguo con guion bajo, por si se creó antes del cambio).
  */
 function instalarTriggerReindex() {
   var triggers = ScriptApp.getProjectTriggers();
   for (var i = 0; i < triggers.length; i++) {
-    if (triggers[i].getHandlerFunction() === 'reindexarAsistente_') ScriptApp.deleteTrigger(triggers[i]);
+    var h = triggers[i].getHandlerFunction();
+    if (h === 'reindexarAsistente' || h === 'reindexarAsistente_') ScriptApp.deleteTrigger(triggers[i]);
   }
-  ScriptApp.newTrigger('reindexarAsistente_').timeBased().everyHours(1).create();
+  ScriptApp.newTrigger('reindexarAsistente').timeBased().everyHours(1).create();
 }
 
 // ---------- Usuarios ----------
