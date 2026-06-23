@@ -77,6 +77,24 @@ async function buscarFragmentos(embedding: number[], pregunta: string, area: str
   }>;
 }
 
+// Lista de temas/manuales disponibles, para que el asistente pueda sugerir
+// sobre qué ayudar (sin inventar). Devuelve nombres únicos, máximo ~30.
+async function temasDisponibles(): Promise<string[]> {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/documents?select=titulo,area`, {
+      headers: { 'apikey': SERVICE_ROLE, 'Authorization': `Bearer ${SERVICE_ROLE}` },
+    });
+    if (!res.ok) return [];
+    const filas = await res.json() as Array<{ titulo: string | null; area: string | null }>;
+    const set = new Set<string>();
+    for (const f of filas) {
+      const t = (f.titulo || '').trim();
+      if (t) set.add(f.area ? `${t} (${String(f.area).trim()})` : t);
+    }
+    return [...set].slice(0, 30);
+  } catch (_e) { return []; }
+}
+
 async function guardarMensajes(usuario: string, pregunta: string, respuesta: string, fuentes: unknown) {
   try {
     await fetch(`${SUPABASE_URL}/rest/v1/chat_messages`, {
@@ -114,15 +132,12 @@ Deno.serve(async (req) => {
   if (!sesion) return json({ ok: false, error: 'Sesión no válida. Vuelve a iniciar sesión.' }, 401);
 
   try {
-    // 2) Embedding + 3) recuperación
+    // 2) Embedding + 3) recuperación (+ temas disponibles para sugerir)
     const embedding = await embeddingPregunta(pregunta);
-    const fragmentos = await buscarFragmentos(embedding, pregunta, area);
-
-    if (!fragmentos.length) {
-      const respuesta = 'No encuentro esa información en los manuales.';
-      await guardarMensajes(usuario, pregunta, respuesta, []);
-      return json({ ok: true, respuesta, fuentes: [] });
-    }
+    const [fragmentos, temas] = await Promise.all([
+      buscarFragmentos(embedding, pregunta, area),
+      temasDisponibles(),
+    ]);
 
     // Agrupa fuentes únicas (para citar y enlazar) y numera el contexto.
     const fuentesMap = new Map<string, { n: number; codigo: string | null; titulo: string | null; area: string | null; doc_url: string | null }>();
@@ -141,35 +156,46 @@ Deno.serve(async (req) => {
 
     const fuentes = [...fuentesMap.values()].sort((a, b) => a.n - b.n);
 
-    // 4) Generación: servicial pero anclado al contexto.
+    // 4) Generación: asistente conversacional, servicial y anclado al contexto.
+    const listaTemas = temas.length ? temas.map((t) => `- ${t}`).join('\n') : '(sin temas indexados todavía)';
     const sistema = [
-      'Eres el asistente de conocimiento interno de la empresa. Respondes preguntas del personal',
-      'usando el CONTEXTO, que son extractos de los manuales y datos internos recuperados para esta consulta.',
-      'Sé servicial y resuelve la intención del usuario, no exijas que la pregunta sea literal.',
-      'Si la consulta es vaga o solo menciona un tema (por ejemplo "gift card" o "contactos"),',
-      'resume e indica la información relevante que encuentres sobre ese tema en el contexto.',
-      'Si hay varias fuentes relacionadas, menciónalas. Cita las fuentes que uses con su número',
-      'entre corchetes, por ejemplo [1].',
-      'Solo si en el CONTEXTO no hay absolutamente nada relacionado con la consulta, responde:',
-      '"No encuentro esa información en los manuales."',
-      'No inventes datos que no estén en el contexto. Responde en español, claro y conciso.',
+      'Eres el asistente virtual interno de la empresa fidelitygroup. Tu trabajo es ayudar al',
+      'personal con dudas sobre los manuales, procedimientos y datos internos. Eres amable,',
+      'conversacional y proactivo.',
+      'Pautas:',
+      '1) Si el usuario saluda o hace charla (por ejemplo "hola", "buenas", "qué puedes hacer"),',
+      'salúdalo con cordialidad, preséntate en una línea y ofrécele ayuda sugiriendo 3 o 4 TEMAS',
+      'DISPONIBLES concretos sobre los que puede preguntar.',
+      '2) Para preguntas reales, responde usando el CONTEXTO (extractos recuperados), resuelve la',
+      'intención aunque la pregunta no sea literal, y cita las fuentes que uses con su número entre',
+      'corchetes, por ejemplo [1].',
+      '3) Si el CONTEXTO no contiene lo que piden, NO inventes: dilo con amabilidad y, en vez de',
+      'cortar en seco, sugiere temas relacionados de los TEMAS DISPONIBLES o pídele que reformule.',
+      '4) Nunca te inventes datos (teléfonos, montos, pasos) que no estén en el CONTEXTO.',
+      'Responde siempre en español, claro y breve.',
     ].join(' ');
+
+    const userMsg =
+      `TEMAS DISPONIBLES (manuales/datos indexados):\n${listaTemas}\n\n` +
+      `CONTEXTO (extractos recuperados para esta consulta):\n\n${contexto || '(no se recuperó contexto relevante)'}\n\n` +
+      `---\n\nMENSAJE DEL USUARIO: ${pregunta}`;
 
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${OPENAI_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: CHAT_MODEL,
-        temperature: 0.2,
+        temperature: 0.3,
         messages: [
           { role: 'system', content: sistema },
-          { role: 'user', content: `CONTEXTO:\n\n${contexto}\n\n---\n\nPREGUNTA: ${pregunta}` },
+          { role: 'user', content: userMsg },
         ],
       }),
     });
     if (!res.ok) throw new Error('OpenAI chat ' + res.status + ': ' + (await res.text()));
     const data = await res.json();
-    const respuesta = data.choices?.[0]?.message?.content?.trim() || 'No encuentro esa información en los manuales.';
+    const respuesta = data.choices?.[0]?.message?.content?.trim()
+      || 'Disculpa, no pude generar una respuesta. ¿Puedes reformular tu pregunta?';
 
     await guardarMensajes(usuario, pregunta, respuesta, fuentes);
     return json({ ok: true, respuesta, fuentes });
