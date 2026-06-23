@@ -63,10 +63,15 @@ function formatearRespuesta(texto, fuentes) {
     });
 }
 
-/** Lista de fuentes bajo la respuesta. */
-function fuentesHTML(fuentes) {
+/** Lista de fuentes bajo la respuesta: solo las realmente citadas con [n]. */
+function fuentesHTML(fuentes, respuesta) {
   if (!fuentes || !fuentes.length) return '';
-  const items = fuentes.map((f) => {
+  // Detecta qué números [n] aparecen en la respuesta para no listar fuentes sin usar.
+  const citadas = new Set();
+  String(respuesta || '').replace(/\[(\d+)\]/g, (m, n) => { citadas.add(Number(n)); return m; });
+  const usadas = citadas.size ? fuentes.filter((f) => citadas.has(f.n)) : [];
+  if (!usadas.length) return '';
+  const items = usadas.map((f) => {
     const etiqueta = [f.codigo ? `#${f.codigo}` : '', f.titulo || '(sin título)'].filter(Boolean).join(' ');
     const cuerpo = f.doc_url
       ? `<a href="${esc(f.doc_url)}" target="_blank" rel="noopener">${esc(etiqueta)}</a>`
@@ -92,7 +97,7 @@ async function enviar(e) {
 
   try {
     const { respuesta, fuentes } = await preguntar(pregunta);
-    pensando.innerHTML = formatearRespuesta(respuesta, fuentes || []) + fuentesHTML(fuentes || []);
+    pensando.innerHTML = formatearRespuesta(respuesta, fuentes || []) + fuentesHTML(fuentes || [], respuesta);
   } catch (err) {
     pensando.classList.add('chat-error');
     pensando.textContent = err.message;
