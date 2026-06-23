@@ -6,4 +6,4 @@ export const API_URL = 'https://script.google.com/macros/s/AKfycbwcz9_49cDLOEZuo
 // Formato: https://TU-PROYECTO.supabase.co/functions/v1/chat
 // Déjala vacía hasta desplegar el backend RAG; mientras tanto la vista de chat
 // avisará de que no está configurada.
-export const CHAT_API_URL = '';
+export const CHAT_API_URL = 'https://jemrfuddgghgxkzsgbiu.supabase.co/functions/v1/chat';
