@@ -26,20 +26,6 @@ var FOLDER_ID = 'PEGA_AQUI_EL_ID_DE_LA_CARPETA';
 var SHEET_MANUALES = 'Procedimientos';
 var SHEET_USUARIOS = 'Usuarios';
 
-// Pestañas con datos estructurados que el chatbot debe conocer (además de los
-// manuales). Deja la lista vacía para indexar solo los manuales. Cada pestaña
-// debe tener una fila de encabezados y debajo las filas de datos.
-// Ejemplo: var DATA_SHEETS = ['Precios', 'Contactos'];
-var DATA_SHEETS = [];
-
-// Reindexado automático del asistente (chatbot). Rellena estos dos valores con
-// la URL de la Edge Function "reindex" de Supabase y el secreto compartido
-// (el mismo que pondrás como secret REINDEX_SECRET en Supabase). Si quedan
-// vacíos, el reindexado automático simplemente no se ejecuta (no da error).
-//   REINDEX_URL: https://TU-PROYECTO.supabase.co/functions/v1/reindex
-var REINDEX_URL = '';
-var REINDEX_SECRET = '';
-
 // Índices de columnas (0-based) de la pestaña Procedimientos.
 var COL = {
   id: 0, codigo: 1, titulo: 2, descripcion: 3, area: 4,
@@ -71,7 +57,7 @@ function doPost(e) {
       case 'createUsuario': return handleCreateUsuario_(body);
       case 'updateUsuario': return handleUpdateUsuario_(body);
       case 'deleteUsuario': return handleDeleteUsuario_(body);
-      case 'contenidoParaIndexar': return handleContenidoParaIndexar_(body);
+      case 'cambiarMiPassword': return handleCambiarMiPassword_(body);
       default:              return jsonOut_({ ok: false, error: 'Acción desconocida' });
     }
   } catch (err) {
@@ -197,10 +183,6 @@ function handleCreateManual_(body) {
     lock.releaseLock();
   }
 
-  // Reindexa el manual recién creado en el asistente (best-effort).
-  var nuevo = recopilarContenido_(id);
-  enviarReindex_({ manuales: nuevo.manuales });
-
   return jsonOut_({ ok: true, manual: rowToManual_(filaPorId_(sheet, id).valores) });
 }
 
@@ -294,128 +276,7 @@ function handleDeleteManual_(body) {
     try { DriveApp.getFileById(docId).setTrashed(true); } catch (e) {}
   }
 
-  // Quita el manual del índice del asistente (best-effort).
-  enviarReindex_({ eliminar: [id] });
-
   return jsonOut_({ ok: true });
-}
-
-// ---------- Contenido para el chatbot (RAG) ----------
-
-/**
- * Devuelve todo el contenido que el chatbot debe indexar: el texto plano de
- * cada manual (exportado de su Google Doc) + sus metadatos, y las filas de las
- * pestañas de datos configuradas en DATA_SHEETS.
- *
- * Solo Admin. Lo consume el pipeline de ingesta (ver ingest/ingest.mjs), que
- * genera los embeddings y los sube a Supabase. Incluye "actualizado" (última
- * modificación real del Doc) para permitir reindexado incremental.
- */
-function handleContenidoParaIndexar_(body) {
-  requireAdmin_(body);
-  var contenido = recopilarContenido_(null);
-  return jsonOut_({ ok: true, manuales: contenido.manuales, datos: contenido.datos });
-}
-
-/**
- * Recopila el contenido a indexar: el texto plano de los manuales (exportado de
- * sus Google Docs) + las filas de DATA_SHEETS. Si se pasa soloId, devuelve solo
- * ese manual y sin datos (para reindexar puntualmente al crear/editar uno).
- */
-function recopilarContenido_(soloId) {
-  var manuales = [];
-  var rows = getSheet_(SHEET_MANUALES).getDataRange().getValues();
-  for (var i = 1; i < rows.length; i++) {
-    var idFila = String(rows[i][COL.id]).trim();
-    if (!idFila) continue;
-    if (soloId && idFila !== String(soloId)) continue;
-    var m = rowToManual_(rows[i]);
-    var texto = '';
-    var actualizado = '';
-    if (m.docId) {
-      try { texto = DocumentApp.openById(m.docId).getBody().getText(); } catch (e) { texto = ''; }
-      try {
-        var last = DriveApp.getFileById(m.docId).getLastUpdated();
-        if (last) actualizado = last.toISOString();
-      } catch (e2) {}
-    }
-    manuales.push({
-      id: m.id, codigo: m.codigo, titulo: m.titulo, area: m.area,
-      descripcion: m.descripcion, docId: m.docId, docUrl: m.docUrl,
-      fechaCreacion: m.fechaCreacion, actualizado: actualizado, texto: texto
-    });
-  }
-
-  var datos = [];
-  if (!soloId) {
-    for (var d = 0; d < DATA_SHEETS.length; d++) {
-      var nombre = DATA_SHEETS[d];
-      var hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(nombre);
-      if (!hoja) continue;
-      var valores = hoja.getDataRange().getValues();
-      if (valores.length < 2) continue;
-      var cabeceras = valores[0].map(function (c) { return String(c).trim(); });
-      for (var r = 1; r < valores.length; r++) {
-        var partes = [];
-        var vacia = true;
-        for (var c = 0; c < cabeceras.length; c++) {
-          var val = String(valores[r][c]).trim();
-          if (val) { vacia = false; partes.push((cabeceras[c] || ('col' + c)) + ': ' + val); }
-        }
-        if (vacia) continue;
-        datos.push({ sheet: nombre, fila: r + 1, texto: partes.join('; ') });
-      }
-    }
-  }
-
-  return { manuales: manuales, datos: datos };
-}
-
-/**
- * Envía un payload a la Edge Function "reindex" de Supabase. Es best-effort:
- * nunca interrumpe la operación principal (crear/borrar) si falla.
- */
-function enviarReindex_(payload) {
-  if (!REINDEX_URL || !REINDEX_SECRET) {
-    Logger.log('Reindex OMITIDO: falta REINDEX_URL o REINDEX_SECRET en Code.gs');
-    return;
-  }
-  try {
-    payload.secret = REINDEX_SECRET;
-    var resp = UrlFetchApp.fetch(REINDEX_URL, {
-      method: 'post',
-      contentType: 'application/json',
-      payload: JSON.stringify(payload),
-      muteHttpExceptions: true
-    });
-    Logger.log('Reindex HTTP ' + resp.getResponseCode() + ': ' + resp.getContentText());
-  } catch (e) {
-    Logger.log('Reindex ERROR: ' + e);
-  }
-}
-
-/**
- * Reindexado completo. Lo llama el trigger horario (capta ediciones de Docs) y
- * puedes ejecutarla a mano desde el editor (▶) para reindexar al instante.
- * Sin guion bajo final para que aparezca en el desplegable de funciones.
- */
-function reindexarAsistente() {
-  var contenido = recopilarContenido_(null);
-  enviarReindex_({ manuales: contenido.manuales, datos: contenido.datos, full: true });
-}
-
-/**
- * Ejecuta esta función UNA vez (botón ▶ del editor) para crear el trigger que
- * reindexa automáticamente cada hora. Evita duplicados (incluye el nombre
- * antiguo con guion bajo, por si se creó antes del cambio).
- */
-function instalarTriggerReindex() {
-  var triggers = ScriptApp.getProjectTriggers();
-  for (var i = 0; i < triggers.length; i++) {
-    var h = triggers[i].getHandlerFunction();
-    if (h === 'reindexarAsistente' || h === 'reindexarAsistente_') ScriptApp.deleteTrigger(triggers[i]);
-  }
-  ScriptApp.newTrigger('reindexarAsistente').timeBased().everyHours(1).create();
 }
 
 // ---------- Usuarios ----------
@@ -510,6 +371,26 @@ function handleDeleteUsuario_(body) {
   lock.waitLock(10000);
   try {
     sheet.deleteRow(encontrada.indice);
+  } finally {
+    lock.releaseLock();
+  }
+  return jsonOut_({ ok: true });
+}
+
+/** Cualquier usuario autenticado cambia su propia contraseña (sin requerir rol Admin). */
+function handleCambiarMiPassword_(body) {
+  var user = requireAuth_(body);
+  var nuevaPassword = String(body.nuevaPassword || '');
+  if (!nuevaPassword) throw new Error('La nueva contraseña es obligatoria.');
+
+  var sheet = getSheet_(SHEET_USUARIOS);
+  var encontrada = usuarioPorNombre_(sheet, user.usuario);
+  if (!encontrada) throw new Error('El usuario ya no existe.');
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    sheet.getRange(encontrada.indice, 2).setValue(nuevaPassword);
   } finally {
     lock.releaseLock();
   }

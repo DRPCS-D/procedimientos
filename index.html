@@ -1,200 +1,41 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>fidelitygroup · Procedimientos</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content="Gestión de manuales y procedimientos internos." />
 
-  <!-- PWA / instalable -->
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#2B4193">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Procedimientos">
-  <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
-  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
 
-  <link rel="stylesheet" href="css/styles.css">
-</head>
-<body>
+    <meta name="theme-color" content="#2B4193" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Procedimientos" />
 
-  <!-- Cabecera (oculta hasta iniciar sesión) -->
-  <header id="app-header" hidden>
-    <button type="button" id="btn-menu" class="btn-menu" aria-label="Abrir menú" aria-expanded="false">
-      <span></span><span></span><span></span>
-    </button>
-    <div class="brand" data-logo></div>
-  </header>
+    <title>Procedimientos</title>
 
-  <!-- Menú lateral deslizable -->
-  <div id="menu-overlay" class="menu-overlay"></div>
-  <aside id="menu-lateral" class="menu-lateral" aria-hidden="true">
-    <div class="menu-cabecera">
-      <span id="header-usuario"></span>
-      <button type="button" id="btn-menu-cerrar" class="btn-cerrar" aria-label="Cerrar menú">&times;</button>
-    </div>
-    <nav id="nav" class="menu-nav">
-      <button type="button" class="nav-btn" data-vista="vista-chat">💬 Asistente</button>
-      <button type="button" class="nav-btn" data-vista="vista-lista">📄 Manuales</button>
-      <button type="button" class="nav-btn" id="nav-usuarios" data-vista="vista-usuarios" hidden>👥 Usuarios</button>
-    </nav>
-    <button type="button" id="btn-logout" class="btn-secundario menu-salir">Salir</button>
-  </aside>
-
-  <main>
-    <!-- Vista: Login -->
-    <section id="vista-login" class="vista vista-centrada" hidden>
-      <form id="form-login" class="tarjeta">
-        <div class="logo-login" data-logo></div>
-        <p class="subtitulo">Gestión de manuales e instrucciones</p>
-        <label>Usuario
-          <input type="text" id="login-usuario" autocomplete="username" required>
-        </label>
-        <label>Contraseña
-          <input type="password" id="login-password" autocomplete="current-password" required>
-        </label>
-        <p id="login-error" class="error" hidden></p>
-        <button type="submit" id="btn-login" class="btn-primario">Entrar</button>
-      </form>
-    </section>
-
-    <!-- Vista: Asistente (chatbot RAG) -->
-    <section id="vista-chat" class="vista" hidden>
-      <div class="chat">
-        <div id="chat-mensajes" class="chat-mensajes">
-          <div class="chat-bienvenida">
-            <div class="chat-bienvenida-logo" data-logo></div>
-            <p>Pregúntame sobre los procedimientos e instrucciones de la empresa.</p>
-            <p class="nota">Respondo con la información de los manuales y enlazo a la fuente.</p>
-          </div>
-        </div>
-        <form id="chat-form" class="chat-form" autocomplete="off">
-          <input type="text" id="chat-input" placeholder="Escribe tu pregunta…" required>
-          <button type="submit" id="chat-enviar" class="btn-primario" aria-label="Enviar">➤</button>
-        </form>
-      </div>
-    </section>
-
-    <!-- Vista: Lista de manuales -->
-    <section id="vista-lista" class="vista" hidden>
-      <div class="toolbar">
-        <input type="search" id="busqueda" placeholder="Buscar por código, título o área...">
-        <button type="button" id="btn-nuevo" class="btn-primario" title="Nuevo manual" aria-label="Nuevo manual" hidden>+</button>
-      </div>
-      <div id="lista-manuales" class="tabla-contenedor"></div>
-      <p id="lista-cargando" class="aviso" hidden>Cargando…</p>
-      <p id="lista-vacia" class="aviso" hidden>No hay manuales que coincidan.</p>
-    </section>
-
-    <!-- Vista: Ver un manual -->
-    <section id="vista-ver" class="vista" hidden>
-      <button type="button" id="btn-volver" class="btn-volver">← Volver</button>
-      <div class="meta">
-        <div id="ver-meta"></div>
-        <div class="meta-acciones">
-          <div id="ver-fechas" class="meta-fechas"></div>
-          <div class="meta-botones">
-            <button type="button" id="btn-ver-editar" class="btn-secundario" hidden>✏️ Editar datos</button>
-            <button type="button" id="btn-ver-borrar" class="btn-peligro" hidden>🗑 Borrar</button>
-          </div>
-        </div>
-      </div>
-      <div class="ver-acciones">
-        <button type="button" id="btn-imprimir" class="btn-secundario">🖨 Imprimir / PDF</button>
-        <button type="button" id="btn-editar-contenido" class="btn-secundario" hidden>✎ Editar contenido</button>
-      </div>
-      <div class="doc-contenedor">
-        <iframe id="ver-doc" title="Contenido del manual" loading="lazy"></iframe>
-        <div class="doc-cargando" aria-hidden="true"></div>
-      </div>
-    </section>
-
-    <!-- Vista: Formulario crear/editar manual -->
-    <section id="vista-form" class="vista vista-centrada" hidden>
-      <form id="form-manual" class="tarjeta">
-        <button type="button" id="btn-form-cancelar" class="btn-volver">← Cancelar</button>
-        <h2 id="form-titulo">Nuevo manual</h2>
-        <label>Título
-          <input type="text" id="m-titulo" maxlength="20" required>
-        </label>
-        <label>Área
-          <input type="text" id="m-area" list="areas-list" maxlength="20">
-          <datalist id="areas-list"></datalist>
-        </label>
-        <label>Descripción
-          <textarea id="m-descripcion" rows="3" maxlength="1000"></textarea>
-        </label>
-        <p id="form-error" class="error" hidden></p>
-        <button type="submit" id="btn-guardar" class="btn-primario">Guardar</button>
-        <p class="nota" id="form-nota" hidden>
-          El código se asigna automáticamente. Al guardar se creará un Google Doc en tu Drive para el contenido.
-        </p>
-      </form>
-    </section>
-
-    <!-- Vista: Gestión de usuarios (solo Admin) -->
-    <section id="vista-usuarios" class="vista" hidden>
-      <div class="toolbar">
-        <h2>Usuarios</h2>
-        <button type="button" id="btn-nuevo-usuario" class="btn-primario">+ Nuevo usuario</button>
-      </div>
-      <div id="lista-usuarios" class="tarjetas"></div>
-      <p id="usuarios-cargando" class="aviso" hidden>Cargando…</p>
-    </section>
-  </main>
-
-  <!-- Diálogo crear/editar usuario -->
-  <dialog id="dialog-usuario">
-    <form id="form-usuario" method="dialog">
-      <h3 id="usuario-dialog-titulo">Nuevo usuario</h3>
-      <label>Usuario
-        <input type="text" id="u-usuario" autocomplete="off" required>
-      </label>
-      <label>Contraseña
-        <input type="text" id="u-password" autocomplete="off">
-        <small id="u-password-ayuda" class="nota"></small>
-      </label>
-      <label>Rol
-        <select id="u-rol">
-          <option value="user">User (ver e imprimir)</option>
-          <option value="admin">Admin (todo)</option>
-        </select>
-      </label>
-      <label class="checkbox">
-        <input type="checkbox" id="u-activo" checked> Activo
-      </label>
-      <p id="usuario-error" class="error" hidden></p>
-      <div class="dialog-acciones">
-        <button type="button" id="btn-usuario-cancelar" class="btn-secundario">Cancelar</button>
-        <button type="submit" id="btn-usuario-guardar" class="btn-primario">Guardar</button>
-      </div>
-    </form>
-  </dialog>
-
-  <!-- Diálogo de confirmación -->
-  <dialog id="dialog-confirmar">
-    <form method="dialog">
-      <h3 id="confirmar-titulo">Confirmar</h3>
-      <p id="confirmar-mensaje"></p>
-      <div class="dialog-acciones">
-        <button type="button" id="btn-confirmar-no" class="btn-secundario">Cancelar</button>
-        <button type="button" id="btn-confirmar-si" class="btn-peligro">Eliminar</button>
-      </div>
-    </form>
-  </dialog>
-
-  <div id="toast" class="toast" hidden></div>
-
-  <script type="module" src="js/app.js"></script>
-  <script>
-    // Registro del service worker (habilita la instalación como app).
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').catch(() => {});
-      });
-    }
-  </script>
-</body>
+    <!--
+      Aplica el tema antes del primer pintado: sin esto, entrar con el tema
+      oscuro muestra un fogonazo blanco mientras carga el bundle. La clave
+      tiene que coincidir con CLAVE_TEMA de src/lib/tema.ts.
+    -->
+    <script>
+      try {
+        var tema = localStorage.getItem('procedimientos:tema') || 'sistema'
+        var oscuro =
+          tema === 'oscuro' ||
+          (tema === 'sistema' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        if (oscuro) document.documentElement.classList.add('dark')
+      } catch (e) {
+        /* sin localStorage se usa el tema claro */
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
