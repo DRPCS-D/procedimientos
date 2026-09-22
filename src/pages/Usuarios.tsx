@@ -84,6 +84,13 @@ export default function Usuarios() {
                 <tr
                   key={u.usuario}
                   onClick={() => setModalEditar(u)}
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      setModalEditar(u)
+                    }
+                  }}
                   className="cursor-pointer border-b border-border last:border-0 hover:bg-accent/40"
                 >
                   <td className="px-4 py-2.5 font-medium text-foreground">

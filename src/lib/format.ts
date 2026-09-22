@@ -10,13 +10,6 @@ export function formatFecha(iso: string | null | undefined): string {
   return `${d}/${m}/${f.getFullYear()}`
 }
 
-export function formatFechaHora(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  const f = new Date(iso)
-  if (Number.isNaN(f.getTime())) return '—'
-  return `${formatFecha(iso)} ${String(f.getHours()).padStart(2, '0')}:${String(f.getMinutes()).padStart(2, '0')}`
-}
-
 /** Normaliza texto para buscar sin tildes ni mayusculas. */
 export function normalizar(texto: string): string {
   return texto

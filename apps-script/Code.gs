@@ -66,7 +66,13 @@ function doPost(e) {
       default:              return jsonOut_({ ok: false, error: 'Acción desconocida' });
     }
   } catch (err) {
-    return jsonOut_({ ok: false, error: err.message || ('Error del servidor: ' + err) });
+    // "codigo" deja que el frontend distinga una sesión caída de cualquier
+    // otro error sin depender del texto del mensaje (ver requireAuth_).
+    return jsonOut_({
+      ok: false,
+      error: err.message || ('Error del servidor: ' + err),
+      codigo: err.codigo || ''
+    });
   }
 }
 
@@ -78,10 +84,19 @@ function handleLogin_(body) {
   return jsonOut_({ ok: true, usuario: user.usuario, rol: user.rol });
 }
 
-/** Valida credenciales y devuelve el usuario, o lanza error. */
+/**
+ * Valida credenciales y devuelve el usuario, o lanza error.
+ * El error lleva codigo 'SESION' para que el frontend cierre la sesión en vez
+ * de mostrar el error en cada pantalla (pasa si te desactivan, te renombran o
+ * te cambian la contraseña mientras estabas dentro).
+ */
 function requireAuth_(body) {
   var user = findUser_(body.usuario, body.password);
-  if (!user) throw new Error('Sesión no válida. Vuelve a iniciar sesión.');
+  if (!user) {
+    var e = new Error('Sesión no válida. Vuelve a iniciar sesión.');
+    e.codigo = 'SESION';
+    throw e;
+  }
   return user;
 }
 

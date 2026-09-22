@@ -102,7 +102,7 @@ export function ConfirmModal({
             Cancelar
           </Button>
           <Button variant="destructive" onClick={onConfirmar} disabled={procesando}>
-            {procesando ? 'Eliminando…' : textoConfirmar}
+            {procesando ? 'Procesando…' : textoConfirmar}
           </Button>
         </>
       }

@@ -1,5 +1,14 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
-import { callApi } from '@/lib/appsScript'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react'
+import { toast } from 'sonner'
+import { callApi, onSesionInvalida } from '@/lib/appsScript'
 import { borrarSesion, guardarSesion, leerSesion, type Sesion } from '@/lib/sesion'
 import type { Rol } from '@/lib/tipos'
 
@@ -45,6 +54,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(() => {
     borrarSesion()
     setSesion(null)
+  }, [])
+
+  // Si el backend deja de aceptar las credenciales guardadas (te desactivaron,
+  // te renombraron o te cambiaron la contraseña desde otro dispositivo), se
+  // cierra la sesión: AppLayout ve `usuario === null` y manda al login. Sin
+  // esto la app quedaba mostrando errores en cada pantalla, sin salida obvia.
+  useEffect(() => {
+    return onSesionInvalida(() => {
+      if (!leerSesion()) return // ya no había sesión: nada que avisar
+      borrarSesion()
+      setSesion(null)
+      toast.error('Tu sesión ya no es válida. Volvé a iniciar sesión.')
+    })
   }, [])
 
   const actualizarNombreSesion = useCallback((nuevoUsuario: string) => {
