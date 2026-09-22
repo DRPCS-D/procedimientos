@@ -40,8 +40,8 @@ export default function Manuales() {
           <p className="text-sm text-muted-foreground">Procedimientos de la empresa.</p>
         </div>
         {esAdmin && (
-          <Button size="icon" onClick={() => setModalForm('nuevo')} title="Nuevo manual" aria-label="Nuevo manual">
-            <Plus />
+          <Button onClick={() => setModalForm('nuevo')}>
+            <Plus /> Nuevo manual
           </Button>
         )}
       </div>
