@@ -5,9 +5,10 @@
  * automáticamente un Google Doc por cada manual dentro de una carpeta
  * de tu Google Drive.
  *
- * Despliegue (ver docs/SETUP.md):
+ * Despliegue:
  *   Extensiones > Apps Script > pegar este archivo
- *   > poner el ID de la carpeta en FOLDER_ID
+ *   > Configuración del proyecto > Propiedades del script > agregar FOLDER_ID
+ *     (ver getFolderId_ más abajo)
  *   > Implementar > Aplicación web
  *   > Ejecutar como: Yo | Quién tiene acceso: Cualquier usuario
  *
@@ -19,9 +20,13 @@
  */
 
 // ID de la carpeta de Drive donde se crearán los documentos.
-// Es la parte final de la URL de la carpeta:
-// https://drive.google.com/drive/folders/AQUI_VA_EL_ID
-var FOLDER_ID = 'PEGA_AQUI_EL_ID_DE_LA_CARPETA';
+// NO se pega acá: se guarda como Script Property (Configuración del proyecto
+// > Propiedades del script > agregar "FOLDER_ID"), así sobrevive a que
+// vuelvas a pegar este archivo en el futuro. Es la parte final de la URL de
+// la carpeta: https://drive.google.com/drive/folders/AQUI_VA_EL_ID
+function getFolderId_() {
+  return PropertiesService.getScriptProperties().getProperty('FOLDER_ID');
+}
 
 var SHEET_MANUALES = 'Procedimientos';
 var SHEET_USUARIOS = 'Usuarios';
@@ -400,11 +405,12 @@ function handleCambiarMiPassword_(body) {
 // ---------- Helpers de Drive ----------
 
 function obtenerCarpeta_() {
-  if (!FOLDER_ID || FOLDER_ID.indexOf('PEGA') === 0) {
-    throw new Error('El backend no está configurado: falta FOLDER_ID en Code.gs.');
+  var folderId = getFolderId_();
+  if (!folderId) {
+    throw new Error('El backend no está configurado: falta la propiedad FOLDER_ID (Configuración del proyecto > Propiedades del script).');
   }
   try {
-    return DriveApp.getFolderById(FOLDER_ID);
+    return DriveApp.getFolderById(folderId);
   } catch (e) {
     throw new Error('No se pudo abrir la carpeta de Drive (FOLDER_ID). Revisa el ID y los permisos.');
   }
