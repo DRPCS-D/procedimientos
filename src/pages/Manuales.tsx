@@ -4,9 +4,10 @@ import { toast } from 'sonner'
 import { ManualDetalleModal } from '@/components/manuales/ManualDetalleModal'
 import { ManualFormModal } from '@/components/manuales/ManualFormModal'
 import { Button } from '@/components/ui/button'
-import { Cargando, ErrorBox, Vacio } from '@/components/ui/estado'
+import { ErrorBox, Vacio } from '@/components/ui/estado'
 import { Input } from '@/components/ui/field'
 import { ConfirmModal } from '@/components/ui/modal'
+import { TableSkeleton } from '@/components/ui/table-skeleton'
 import { useAuth } from '@/hooks/useAuth'
 import { useManuales } from '@/hooks/useManuales'
 import { formatFecha, normalizar, recortar } from '@/lib/format'
@@ -59,7 +60,7 @@ export default function Manuales() {
       )}
 
       {loading ? (
-        <Cargando />
+        <TableSkeleton columnas={[10, 30, 15, 20, 20]} />
       ) : error ? (
         <ErrorBox mensaje={error} />
       ) : data.length === 0 ? (

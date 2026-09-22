@@ -4,9 +4,10 @@ import { toast } from 'sonner'
 import { useNavigate } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Cargando, ErrorBox, Vacio } from '@/components/ui/estado'
+import { ErrorBox, Vacio } from '@/components/ui/estado'
 import { Input } from '@/components/ui/field'
 import { ConfirmModal } from '@/components/ui/modal'
+import { TableSkeleton } from '@/components/ui/table-skeleton'
 import { EditarUsuarioModal, NuevoUsuarioModal } from '@/components/usuarios/UsuarioModales'
 import { useAuth } from '@/hooks/useAuth'
 import { useUsuarios } from '@/hooks/useUsuarios'
@@ -62,7 +63,7 @@ export default function Usuarios() {
       )}
 
       {loading ? (
-        <Cargando />
+        <TableSkeleton columnas={[35, 25, 20]} />
       ) : error ? (
         <ErrorBox mensaje={error} />
       ) : data.length === 0 ? (
