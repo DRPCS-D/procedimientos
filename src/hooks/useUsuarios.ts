@@ -42,21 +42,25 @@ export function useUsuarios() {
     }
   }
 
-  /** Actualiza rol/activo, y opcionalmente la contraseña (si se pasa no vacía). */
-  async function editar(usuario: string, payload: { rol: Rol; activo: boolean; nuevaPassword?: string }) {
+  /** Actualiza rol/activo, y opcionalmente nombre y contraseña (si se pasan). Devuelve el nombre final. */
+  async function editar(
+    usuario: string,
+    payload: { rol: Rol; activo: boolean; nuevoUsuario?: string; nuevaPassword?: string },
+  ) {
     try {
-      await callApi(
+      const data = await callApi<{ usuario: string }>(
         'updateUsuario',
         conCredenciales({
           targetUsuario: usuario,
+          nuevoUsuario: payload.nuevoUsuario || '',
           rol: payload.rol,
           activo: payload.activo,
           nuevaPassword: payload.nuevaPassword || '',
         }),
       )
-      return { error: null }
+      return { error: null, usuario: data.usuario }
     } catch (e) {
-      return { error: e instanceof Error ? e.message : 'No se pudo guardar el usuario.' }
+      return { error: e instanceof Error ? e.message : 'No se pudo guardar el usuario.', usuario: null }
     }
   }
 

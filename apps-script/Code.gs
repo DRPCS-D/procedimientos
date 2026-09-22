@@ -332,6 +332,7 @@ function handleUpdateUsuario_(body) {
   var rol = normalizarRol_(body.rol);
   var activo = body.activo !== false;
   var nuevaPassword = String(body.nuevaPassword || '');
+  var nuevoNombre = String(body.nuevoUsuario || '').trim().toUpperCase(); // nombres siempre en mayúsculas
 
   var sheet = getSheet_(SHEET_USUARIOS);
   var encontrada = usuarioPorNombre_(sheet, nombre);
@@ -344,17 +345,24 @@ function handleUpdateUsuario_(body) {
     throw new Error('No puedes quitar el último Admin activo.');
   }
 
+  // Renombrar es opcional: solo si viene un nombre distinto al actual.
+  var seRenombra = !!nuevoNombre && nuevoNombre !== nombre.toUpperCase();
+  if (seRenombra && usuarioExiste_(sheet, nuevoNombre)) {
+    throw new Error('Ya existe un usuario con ese nombre.');
+  }
+
   var lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
     var fila = encontrada.indice;
+    if (seRenombra) sheet.getRange(fila, 1).setValue(nuevoNombre);
     sheet.getRange(fila, 3).setValue(rol);
     sheet.getRange(fila, 4).setValue(activo);
     if (nuevaPassword) sheet.getRange(fila, 2).setValue(nuevaPassword);
   } finally {
     lock.releaseLock();
   }
-  return jsonOut_({ ok: true });
+  return jsonOut_({ ok: true, usuario: seRenombra ? nuevoNombre : nombre.toUpperCase() });
 }
 
 function handleDeleteUsuario_(body) {

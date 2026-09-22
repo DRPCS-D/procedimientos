@@ -14,7 +14,7 @@ import { normalizar } from '@/lib/format'
 import { ROL_LABEL } from '@/lib/tipos'
 
 export default function Usuarios() {
-  const { esAdmin, usuario: usuarioActual } = useAuth()
+  const { esAdmin, usuario: usuarioActual, actualizarNombreSesion } = useAuth()
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -117,7 +117,12 @@ export default function Usuarios() {
         usuario={modalEditar}
         puedeBorrar={!!modalEditar && modalEditar.usuario.toUpperCase() !== usuarioActual?.toUpperCase()}
         onCerrar={() => setModalEditar(null)}
-        onGuardado={() => {
+        onGuardado={(nombreFinal) => {
+          // Si te renombraste a vos mismo, hay que actualizar la sesión local:
+          // el backend ya no reconoce el nombre viejo en el próximo request.
+          if (modalEditar && modalEditar.usuario.toUpperCase() === usuarioActual?.toUpperCase()) {
+            actualizarNombreSesion(nombreFinal)
+          }
           setModalEditar(null)
           refetch()
         }}

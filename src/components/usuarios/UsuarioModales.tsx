@@ -108,10 +108,12 @@ export function EditarUsuarioModal({
   /** false para el propio usuario logueado: no puede borrarse a sí mismo (lo rechaza también el backend). */
   puedeBorrar: boolean
   onCerrar: () => void
-  onGuardado: () => void
+  /** Recibe el nombre final (puede haber cambiado si se renombró). */
+  onGuardado: (nombreFinal: string) => void
   onBorrar: () => void
   editar: ReturnType<typeof useUsuarios>['editar']
 }) {
+  const [nombre, setNombre] = useState('')
   const [rol, setRol] = useState<Rol>('user')
   const [activo, setActivo] = useState(true)
   const [nuevaPassword, setNuevaPassword] = useState('')
@@ -120,6 +122,7 @@ export function EditarUsuarioModal({
 
   useEffect(() => {
     if (!usuario) return
+    setNombre(usuario.usuario)
     setRol(usuario.rol)
     setActivo(usuario.activo)
     setNuevaPassword('')
@@ -128,16 +131,25 @@ export function EditarUsuarioModal({
 
   async function onGuardar() {
     if (!usuario) return
+    if (!nombre.trim()) {
+      setError('El nombre de usuario es obligatorio.')
+      return
+    }
     setGuardando(true)
     setError(null)
-    const { error: err } = await editar(usuario.usuario, { rol, activo, nuevaPassword })
+    const { error: err, usuario: nombreFinal } = await editar(usuario.usuario, {
+      rol,
+      activo,
+      nuevoUsuario: nombre.trim(),
+      nuevaPassword,
+    })
     setGuardando(false)
     if (err) {
       setError(err)
       return
     }
     toast.success('Datos actualizados')
-    onGuardado()
+    onGuardado(nombreFinal ?? nombre.trim())
   }
 
   return (
@@ -162,6 +174,9 @@ export function EditarUsuarioModal({
       }
     >
       <div className="space-y-4">
+        <Field label="Usuario" hint="No distingue mayúsculas/minúsculas.">
+          <Input value={nombre} onChange={(e) => setNombre(e.target.value)} autoComplete="off" autoFocus />
+        </Field>
         <SelectorDeRol valor={rol} onCambiar={setRol} />
         <Field label="Estado">
           <Select value={activo ? '1' : '0'} onChange={(e) => setActivo(e.target.value === '1')}>

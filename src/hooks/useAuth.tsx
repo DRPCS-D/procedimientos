@@ -17,6 +17,12 @@ interface AuthState {
   loading: boolean
   signIn: (usuario: string, password: string) => Promise<{ error: string | null }>
   signOut: () => void
+  /**
+   * Actualiza el nombre de la sesión actual sin volver a autenticar (misma
+   * contraseña). Se usa cuando un Admin se renombra a sí mismo desde
+   * Usuarios: sin esto, el próximo request con el nombre viejo fallaría.
+   */
+  actualizarNombreSesion: (nuevoUsuario: string) => void
 }
 
 const AuthContext = createContext<AuthState | null>(null)
@@ -41,6 +47,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSesion(null)
   }, [])
 
+  const actualizarNombreSesion = useCallback((nuevoUsuario: string) => {
+    setSesion((s) => {
+      if (!s) return s
+      const nueva = { ...s, usuario: nuevoUsuario }
+      guardarSesion(nueva)
+      return nueva
+    })
+  }, [])
+
   const valor = useMemo<AuthState>(
     () => ({
       usuario: sesion?.usuario ?? null,
@@ -49,8 +64,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading: false,
       signIn,
       signOut,
+      actualizarNombreSesion,
     }),
-    [sesion, signIn, signOut],
+    [sesion, signIn, signOut, actualizarNombreSesion],
   )
 
   return <AuthContext.Provider value={valor}>{children}</AuthContext.Provider>
