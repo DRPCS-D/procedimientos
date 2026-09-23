@@ -60,7 +60,7 @@ export default function Manuales() {
       )}
 
       {loading ? (
-        <TableSkeleton columnas={[10, 30, 15, 20, 20]} />
+        <TableSkeleton columnas={[10, 35, 20, 15]} />
       ) : error ? (
         <ErrorBox mensaje={error} />
       ) : data.length === 0 ? (
@@ -75,8 +75,7 @@ export default function Manuales() {
                 <th className="whitespace-nowrap px-4 py-2.5 font-medium">Código</th>
                 <th className="whitespace-nowrap px-4 py-2.5 font-medium">Título</th>
                 <th className="whitespace-nowrap px-4 py-2.5 font-medium">Área</th>
-                <th className="whitespace-nowrap px-4 py-2.5 font-medium">Creado</th>
-                <th className="whitespace-nowrap px-4 py-2.5 font-medium">Modificado</th>
+                <th className="whitespace-nowrap px-4 py-2.5 font-medium">Fecha</th>
               </tr>
             </thead>
             <tbody>
@@ -102,23 +101,6 @@ export default function Manuales() {
                   </td>
                   <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground">
                     {formatFecha(m.fechaCreacion)}
-                    {m.usuarioCreador && (
-                      <span className="block text-[11px] text-muted-foreground/70">por {m.usuarioCreador.toUpperCase()}</span>
-                    )}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground">
-                    {m.fechaModificacion ? (
-                      <>
-                        {formatFecha(m.fechaModificacion)}
-                        {m.usuarioModificacion && (
-                          <span className="block text-[11px] text-muted-foreground/70">
-                            por {m.usuarioModificacion.toUpperCase()}
-                          </span>
-                        )}
-                      </>
-                    ) : (
-                      '—'
-                    )}
                   </td>
                 </tr>
               ))}
