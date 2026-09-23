@@ -100,7 +100,7 @@ export default function Manuales() {
                     {recortar(m.area, 20) || '—'}
                   </td>
                   <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground">
-                    {formatFecha(m.fechaCreacion)}
+                    {formatFecha(m.fechaModificacion || m.fechaCreacion)}
                   </td>
                 </tr>
               ))}
