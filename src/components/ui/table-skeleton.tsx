@@ -7,7 +7,7 @@ import { Skeleton } from './skeleton'
  * para que cada skeleton se parezca a lo que va a mostrar esa columna
  * (código corto, título largo, fecha media, etc.).
  */
-export function TableSkeleton({ columnas, filas = 5 }: { columnas: number[]; filas?: number }) {
+export function TableSkeleton({ columnas, filas = 14 }: { columnas: number[]; filas?: number }) {
   return (
     <div className="w-full overflow-hidden rounded-lg border border-border bg-card">
       <table className="w-full text-sm">
