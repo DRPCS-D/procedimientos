@@ -43,7 +43,7 @@ export default function Usuarios() {
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-foreground">Usuarios</h1>
-          <p className="text-sm text-muted-foreground">Quiénes tienen acceso al sistema.</p>
+          <p className="text-sm text-muted-foreground">Personal con acceso.</p>
         </div>
         <Button onClick={() => setModalNuevo(true)}>
           <Plus /> Nuevo usuario
