@@ -76,11 +76,11 @@ export function ManualFormModal({
       }
     >
       <div className="space-y-4">
-        <Field label="Título *" hint="Máximo 20 caracteres.">
-          <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} maxLength={20} autoFocus />
+        <Field label="Título *" hint="Máximo 50 caracteres.">
+          <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} maxLength={50} autoFocus />
         </Field>
-        <Field label="Área" hint="Máximo 20 caracteres.">
-          <Input value={area} onChange={(e) => setArea(e.target.value)} maxLength={20} list="areas-existentes" />
+        <Field label="Área" hint="Máximo 30 caracteres.">
+          <Input value={area} onChange={(e) => setArea(e.target.value)} maxLength={30} list="areas-existentes" />
           <datalist id="areas-existentes">
             {areas.map((a) => (
               <option key={a} value={a} />
