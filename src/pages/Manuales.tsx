@@ -97,7 +97,7 @@ export default function Manuales() {
                     {recortar(m.titulo, 50)}
                   </td>
                   <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground" title={m.area}>
-                    {recortar(m.area, 20) || '—'}
+                    {recortar(m.area, 30) || '—'}
                   </td>
                   <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground">
                     {formatFecha(m.fechaModificacion || m.fechaCreacion)}
