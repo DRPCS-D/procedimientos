@@ -94,7 +94,7 @@ export default function Manuales() {
                 >
                   <td className="tabular whitespace-nowrap px-4 py-2.5 font-medium text-foreground">#{m.codigo}</td>
                   <td className="whitespace-nowrap px-4 py-2.5 text-foreground" title={m.titulo}>
-                    {recortar(m.titulo, 20)}
+                    {recortar(m.titulo, 50)}
                   </td>
                   <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground" title={m.area}>
                     {recortar(m.area, 20) || '—'}
