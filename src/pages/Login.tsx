@@ -3,6 +3,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { ErrorBox } from '@/components/ui/estado'
+import { FondoEsfera } from '@/components/ui/fondo-esfera'
 import { Field, Input } from '@/components/ui/field'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { useAuth } from '@/hooks/useAuth'
@@ -34,15 +35,17 @@ export default function Login() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-background px-4 py-10">
-      <div className="absolute right-3 top-3">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-10">
+      <FondoEsfera />
+      <div className="absolute right-3 top-3 z-10">
         <ThemeToggle />
       </div>
 
-      <div className="w-full max-w-sm">
+      <div className="relative z-10 w-full max-w-sm">
         <div className="mb-7 text-center">
-          <img src="/logo.svg" alt="" className="mx-auto mb-3 size-12 rounded-xl" />
-          <h1 className="text-lg font-semibold text-foreground">Procedimientos</h1>
+          <img src="/logo-completo.svg" alt="Fidelity Group" className="mx-auto mb-4 h-10 w-auto dark:hidden" />
+          <img src="/logo-completo-oscuro.svg" alt="Fidelity Group" className="mx-auto mb-4 hidden h-10 w-auto dark:block" />
+          <h1 className="sr-only">Procedimientos</h1>
           <p className="mt-1 text-sm text-muted-foreground">Ingresa con tu cuenta</p>
         </div>
 
