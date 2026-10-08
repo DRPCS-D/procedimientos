@@ -7,9 +7,11 @@ import { Button } from '@/components/ui/button'
 import { ErrorBox, Vacio } from '@/components/ui/estado'
 import { Input } from '@/components/ui/field'
 import { ConfirmModal } from '@/components/ui/modal'
+import { Skeleton } from '@/components/ui/skeleton'
 import { TableSkeleton } from '@/components/ui/table-skeleton'
 import { EditarUsuarioModal, NuevoUsuarioModal } from '@/components/usuarios/UsuarioModales'
 import { useAuth } from '@/hooks/useAuth'
+import { useAltoRestante } from '@/hooks/useAltoRestante'
 import { useUsuarios } from '@/hooks/useUsuarios'
 import { normalizar } from '@/lib/format'
 import { ROL_LABEL } from '@/lib/tipos'
@@ -17,6 +19,7 @@ import { ROL_LABEL } from '@/lib/tipos'
 export default function Usuarios() {
   const { esAdmin, usuario: usuarioActual, actualizarNombreSesion } = useAuth()
   const navigate = useNavigate()
+  const tabla = useAltoRestante<HTMLDivElement>()
 
   useEffect(() => {
     if (!esAdmin) navigate('/', { replace: true })
@@ -50,16 +53,20 @@ export default function Usuarios() {
         </Button>
       </div>
 
-      {data.length > 0 && (
-        <div className="relative mb-4 max-w-sm">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="pl-9"
-            placeholder="Buscar por usuario…"
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-          />
-        </div>
+      {loading ? (
+        <Skeleton className="mb-4 h-9.5 max-w-sm" />
+      ) : (
+        data.length > 0 && (
+          <div className="relative mb-4 max-w-sm">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="pl-9"
+              placeholder="Buscar por usuario…"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+            />
+          </div>
+        )
       )}
 
       {loading ? (
@@ -71,7 +78,7 @@ export default function Usuarios() {
       ) : filtrados.length === 0 ? (
         <Vacio icono={UserRound} titulo="Sin resultados" descripcion="Probá con otra búsqueda." />
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-border bg-card">
+        <div ref={tabla} className="overflow-x-auto rounded-lg border border-border bg-card">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-left text-xs text-muted-foreground">

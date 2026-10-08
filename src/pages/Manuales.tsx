@@ -7,14 +7,17 @@ import { Button } from '@/components/ui/button'
 import { ErrorBox, Vacio } from '@/components/ui/estado'
 import { Input } from '@/components/ui/field'
 import { ConfirmModal } from '@/components/ui/modal'
+import { Skeleton } from '@/components/ui/skeleton'
 import { TableSkeleton } from '@/components/ui/table-skeleton'
 import { useAuth } from '@/hooks/useAuth'
+import { useAltoRestante } from '@/hooks/useAltoRestante'
 import { useManuales } from '@/hooks/useManuales'
 import { formatFecha, normalizar, recortar } from '@/lib/format'
 import type { Manual } from '@/lib/tipos'
 
 export default function Manuales() {
   const { esAdmin } = useAuth()
+  const tabla = useAltoRestante<HTMLDivElement>()
   const { data, loading, error, refetch, crear, editar, eliminar, marcarEdicion } = useManuales()
   const [busqueda, setBusqueda] = useState('')
 
@@ -47,16 +50,20 @@ export default function Manuales() {
         )}
       </div>
 
-      {data.length > 0 && (
-        <div className="relative mb-4 max-w-sm">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="pl-9"
-            placeholder="Buscar por código, título, área…"
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-          />
-        </div>
+      {loading ? (
+        <Skeleton className="mb-4 h-9.5 max-w-sm" />
+      ) : (
+        data.length > 0 && (
+          <div className="relative mb-4 max-w-sm">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="pl-9"
+              placeholder="Buscar por código, título, área…"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+            />
+          </div>
+        )
       )}
 
       {loading ? (
@@ -68,7 +75,7 @@ export default function Manuales() {
       ) : filtrados.length === 0 ? (
         <Vacio icono={FileText} titulo="Sin resultados" descripcion="Probá con otra búsqueda." />
       ) : (
-        <div className="w-full overflow-x-auto rounded-lg border border-border bg-card">
+        <div ref={tabla} className="w-full overflow-x-auto rounded-lg border border-border bg-card">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-left text-xs text-muted-foreground">

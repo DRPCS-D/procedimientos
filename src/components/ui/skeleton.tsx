@@ -8,5 +8,5 @@ import { cn } from '@/lib/utils'
  * los datos: el layout final ya está ahí, solo cambia el contenido.
  */
 export function Skeleton({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('animate-pulse rounded-md bg-muted', className)} {...props} />
+  return <div className={cn('animate-pulse rounded-md bg-foreground/15', className)} {...props} />
 }
