@@ -173,10 +173,6 @@ function handleCreateManual_(body) {
     var codigo = String(siguienteCodigo_(sheet));
 
     var doc = DocumentApp.create(codigo + ' - ' + titulo);
-    var cuerpo = doc.getBody();
-    cuerpo.appendParagraph(titulo).setHeading(DocumentApp.ParagraphHeading.TITLE);
-    if (descripcion) cuerpo.appendParagraph(descripcion);
-    cuerpo.appendParagraph('');
     doc.saveAndClose();
 
     var docId = doc.getId();
