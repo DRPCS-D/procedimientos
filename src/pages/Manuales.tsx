@@ -18,7 +18,7 @@ import type { Manual } from '@/lib/tipos'
 export default function Manuales() {
   const { esAdmin } = useAuth()
   const tabla = useAltoRestante<HTMLDivElement>()
-  const { data, loading, error, refetch, crear, editar, eliminar } = useManuales()
+  const { data, loading, error, refetch, crear, editar, eliminar, marcarEdicion } = useManuales()
   const [busqueda, setBusqueda] = useState('')
 
   const [modalDetalle, setModalDetalle] = useState<Manual | null>(null)
@@ -123,6 +123,9 @@ export default function Manuales() {
         onEditarDatos={() => {
           setModalForm(modalDetalle)
           setModalDetalle(null)
+        }}
+        onEditarContenido={() => {
+          if (modalDetalle) marcarEdicion(modalDetalle.id)
         }}
         onBorrar={() => setModalBorrar(modalDetalle)}
       />
