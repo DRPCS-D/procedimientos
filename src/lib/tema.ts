@@ -14,11 +14,11 @@
  * tambien alla.
  */
 
-export type Tema = 'claro' | 'oscuro' | 'sistema'
+export type Tema = 'claro' | 'oscuro'
 
 export const CLAVE_TEMA = 'procedimientos:tema'
 
-const TEMAS: readonly Tema[] = ['sistema', 'claro', 'oscuro']
+const TEMAS: readonly Tema[] = ['claro', 'oscuro']
 
 const suscriptores = new Set<() => void>()
 
@@ -28,25 +28,21 @@ function esTema(valor: unknown): valor is Tema {
 
 /**
  * El acceso a localStorage puede tirar excepcion (ventana privada, cookies
- * de terceros bloqueadas): ante cualquier problema se cae a 'sistema', que
- * es un default correcto.
+ * de terceros bloqueadas): ante cualquier problema (o si no hay valor
+ * guardado, o es uno viejo como 'sistema') se cae a 'claro'.
  */
 export function leerTema(): Tema {
   try {
     const guardado = localStorage.getItem(CLAVE_TEMA)
-    return esTema(guardado) ? guardado : 'sistema'
+    return esTema(guardado) ? guardado : 'claro'
   } catch {
-    return 'sistema'
+    return 'claro'
   }
-}
-
-function prefiereOscuro(): boolean {
-  return window.matchMedia('(prefers-color-scheme: dark)').matches
 }
 
 /** true si con el tema actual la pantalla se ve oscura. */
 export function esOscuro(tema: Tema = leerTema()): boolean {
-  return tema === 'oscuro' || (tema === 'sistema' && prefiereOscuro())
+  return tema === 'oscuro'
 }
 
 export function aplicarTema(tema: Tema = leerTema()): void {
@@ -63,7 +59,7 @@ export function setTema(tema: Tema): void {
   for (const avisar of suscriptores) avisar()
 }
 
-/** Siguiente tema del ciclo sistema → claro → oscuro → sistema. */
+/** Siguiente tema del ciclo claro ↔ oscuro. */
 export function siguienteTema(tema: Tema): Tema {
   return TEMAS[(TEMAS.indexOf(tema) + 1) % TEMAS.length]
 }
@@ -74,11 +70,3 @@ export function suscribirTema(avisar: () => void): () => void {
     suscriptores.delete(avisar)
   }
 }
-
-// Con el tema en 'sistema', seguir al sistema operativo tambien cuando cambia
-// con la app abierta (por ejemplo, el modo oscuro automatico al anochecer).
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-  if (leerTema() !== 'sistema') return
-  aplicarTema('sistema')
-  for (const avisar of suscriptores) avisar()
-})

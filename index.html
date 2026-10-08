@@ -24,11 +24,9 @@
     -->
     <script>
       try {
-        var tema = localStorage.getItem('procedimientos:tema') || 'sistema'
-        var oscuro =
-          tema === 'oscuro' ||
-          (tema === 'sistema' && window.matchMedia('(prefers-color-scheme: dark)').matches)
-        if (oscuro) document.documentElement.classList.add('dark')
+        if (localStorage.getItem('procedimientos:tema') === 'oscuro') {
+          document.documentElement.classList.add('dark')
+        }
       } catch (e) {
         /* sin localStorage se usa el tema claro */
       }
