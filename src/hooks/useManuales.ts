@@ -62,14 +62,5 @@ export function useManuales() {
     }
   }
 
-  /** Registra quién va a editar el contenido (al pulsar "Editar contenido"). Best-effort. */
-  async function marcarEdicion(id: string) {
-    try {
-      await callApi('marcarEdicion', conCredenciales({ id }))
-    } catch {
-      // best-effort: no bloquea la apertura del Doc
-    }
-  }
-
-  return { ...estado, refetch, crear, editar, eliminar, marcarEdicion }
+  return { ...estado, refetch, crear, editar, eliminar }
 }

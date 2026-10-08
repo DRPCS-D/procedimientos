@@ -20,14 +20,12 @@ export function ManualDetalleModal({
   onCerrar,
   onEditarDatos,
   onBorrar,
-  onEditarContenido,
 }: {
   manual: Manual | null
   esAdmin: boolean
   onCerrar: () => void
   onEditarDatos: () => void
   onBorrar: () => void
-  onEditarContenido: () => void
 }) {
   const [cargandoDoc, setCargandoDoc] = useState(true)
   const [verDoc, setVerDoc] = useState(false)
@@ -60,8 +58,7 @@ export function ManualDetalleModal({
               <Button
                 variant="outline"
                 onClick={() => {
-                  window.open(urlEditar, '_blank') // abrir primero, dentro del gesto del usuario
-                  onEditarContenido()
+                  window.open(urlEditar, '_blank')
                 }}
               >
                 <SquarePen /> Editar contenido
@@ -121,7 +118,6 @@ export function ManualDetalleModal({
           {manual.fechaModificacion && (
             <span className="text-xs text-muted-foreground">
               · Modificado {formatFecha(manual.fechaModificacion)}
-              {manual.usuarioModificacion && ` por ${manual.usuarioModificacion.toUpperCase()}`}
             </span>
           )}
         </div>
