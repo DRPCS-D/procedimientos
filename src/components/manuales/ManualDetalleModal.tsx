@@ -99,7 +99,7 @@ export function ManualDetalleModal({
       abierto={manual !== null}
       titulo={`#${manual.codigo} · ${manual.titulo}`}
       onCerrar={onCerrar}
-      ancho="max-w-lg"
+      ancho="max-w-3xl"
       footer={
         <>
           {esAdmin && (
