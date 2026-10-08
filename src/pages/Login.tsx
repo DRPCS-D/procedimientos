@@ -60,6 +60,7 @@ export default function Login() {
             <Input
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
+              name="username"
               autoComplete="username"
               required
               autoFocus
@@ -72,6 +73,7 @@ export default function Login() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
+              name="password"
               autoComplete="current-password"
               required
             />
@@ -93,7 +95,7 @@ export default function Login() {
         <p className="mt-4 text-center text-xs text-muted-foreground">
           Las cuentas las crea el administrador del sistema.
         </p>
-        <p className="mt-2 text-center text-[11px] text-muted-foreground/70">v{APP_VERSION}</p>
+        <p className="mt-2 text-center text-[11px] text-muted-foreground/70">Desarrollado por DRPCS E.A.S. v{APP_VERSION}</p>
       </div>
     </div>
   )
