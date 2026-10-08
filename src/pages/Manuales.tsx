@@ -42,7 +42,7 @@ export default function Manuales() {
         </div>
         {esAdmin && (
           <Button onClick={() => setModalForm('nuevo')}>
-            <Plus /> Nuevo manual
+            <Plus /> Nuevo
           </Button>
         )}
       </div>
@@ -110,7 +110,7 @@ export default function Manuales() {
       )}
 
       <ManualDetalleModal
-        manual={modalDetalle}
+        manual={modalBorrar ? null : modalDetalle}
         esAdmin={esAdmin}
         onCerrar={() => setModalDetalle(null)}
         onEditarDatos={() => {
@@ -120,10 +120,7 @@ export default function Manuales() {
         onEditarContenido={() => {
           if (modalDetalle) marcarEdicion(modalDetalle.id)
         }}
-        onBorrar={() => {
-          setModalBorrar(modalDetalle)
-          setModalDetalle(null)
-        }}
+        onBorrar={() => setModalBorrar(modalDetalle)}
       />
 
       <ManualFormModal
@@ -159,6 +156,7 @@ export default function Manuales() {
           if (err) toast.error(err)
           else {
             toast.success('Manual borrado.')
+            setModalDetalle(null)
             refetch()
           }
           setModalBorrar(null)

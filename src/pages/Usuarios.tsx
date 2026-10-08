@@ -46,7 +46,7 @@ export default function Usuarios() {
           <p className="text-sm text-muted-foreground">Personal con acceso.</p>
         </div>
         <Button onClick={() => setModalNuevo(true)}>
-          <Plus /> Nuevo usuario
+          <Plus /> Nuevo
         </Button>
       </div>
 

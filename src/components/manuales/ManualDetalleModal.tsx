@@ -1,4 +1,4 @@
-import { FileText, Loader2, Pencil, Printer, SquarePen, Trash2 } from 'lucide-react'
+import { FileText, Loader2, Download, Pencil, SquarePen, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -67,11 +67,6 @@ export function ManualDetalleModal({
                 <SquarePen /> Editar contenido
               </Button>
             )}
-            {urlPdf && (
-              <Button variant="outline" onClick={() => window.open(urlPdf, '_blank')}>
-                <Printer /> Imprimir
-              </Button>
-            )}
             <Button onClick={() => setVerDoc(false)}>Cerrar</Button>
           </>
         }
@@ -109,7 +104,7 @@ export function ManualDetalleModal({
           )}
           {esAdmin && (
             <Button variant="outline" onClick={onEditarDatos}>
-              <Pencil /> Editar datos
+              <Pencil /> Editar
             </Button>
           )}
           <Button onClick={onCerrar}>Cerrar</Button>
@@ -134,17 +129,31 @@ export function ManualDetalleModal({
         {manual.descripcion && <p className="text-sm text-muted-foreground">{manual.descripcion}</p>}
 
         {urlPreview ? (
-          <Button
-            variant="outline"
-            className="h-auto w-full flex-col gap-2 py-6"
-            onClick={() => {
-              setCargandoDoc(true)
-              setVerDoc(true)
-            }}
-          >
-            <FileText className="size-8 text-primary" />
-            <span>Ver documento</span>
-          </Button>
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              className="h-12 gap-2 rounded-r-none"
+              onClick={() => {
+                setCargandoDoc(true)
+                setVerDoc(true)
+              }}
+            >
+              <FileText className="text-primary" />
+              <span>Ver documento</span>
+            </Button>
+            {urlPdf && (
+              <Button
+                variant="outline"
+                size="icon"
+                className="-ml-px h-12 w-12 shrink-0 rounded-l-none"
+                title="Descargar PDF"
+                aria-label="Descargar PDF"
+                onClick={() => window.open(urlPdf, '_blank')}
+              >
+                <Download />
+              </Button>
+            )}
+          </div>
         ) : (
           <p className="rounded-md border border-border py-6 text-center text-sm text-muted-foreground">
             Este manual no tiene documento.
