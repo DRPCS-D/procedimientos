@@ -12,6 +12,18 @@ export interface DatosManual {
   titulo: string
   area: string
   descripcion: string
+  /** Solo al crear: false = no crear el Google Doc. */
+  crearDoc?: boolean
+}
+
+/** Lee un archivo y devuelve su contenido en base64 (sin el prefijo data:). */
+function leerBase64(archivo: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const lector = new FileReader()
+    lector.onload = () => resolve(String(lector.result).split(',')[1] ?? '')
+    lector.onerror = () => reject(new Error('No se pudo leer el archivo.'))
+    lector.readAsDataURL(archivo)
+  })
 }
 
 export function useManuales() {
@@ -37,10 +49,42 @@ export function useManuales() {
 
   async function crear(datos: DatosManual) {
     try {
-      await callApi('createManual', conCredenciales({ ...datos }))
+      const r = await callApi<{ manual: Manual }>('createManual', conCredenciales({ ...datos }))
+      return { error: null, id: r.manual?.id as string | undefined }
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : 'No se pudo crear el manual.', id: undefined }
+    }
+  }
+
+  async function subirAdjunto(id: string, archivo: File) {
+    try {
+      const datos = await leerBase64(archivo)
+      await callApi(
+        'subirAdjunto',
+        conCredenciales({ id, nombre: archivo.name, tipo: archivo.type || 'application/octet-stream', datos }),
+        120000, // las subidas grandes tardan más que una consulta normal
+      )
       return { error: null }
     } catch (e) {
-      return { error: e instanceof Error ? e.message : 'No se pudo crear el manual.' }
+      return { error: e instanceof Error ? e.message : 'No se pudo subir el archivo.' }
+    }
+  }
+
+  async function quitarAdjunto(id: string) {
+    try {
+      await callApi('quitarAdjunto', conCredenciales({ id }))
+      return { error: null }
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : 'No se pudo quitar el archivo.' }
+    }
+  }
+
+  async function crearDocumento(id: string) {
+    try {
+      await callApi('crearDocumento', conCredenciales({ id }))
+      return { error: null }
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : 'No se pudo crear el documento.' }
     }
   }
 
@@ -71,5 +115,15 @@ export function useManuales() {
     }
   }
 
-  return { ...estado, refetch, crear, editar, eliminar, marcarEdicion }
+  return {
+    ...estado,
+    refetch,
+    crear,
+    editar,
+    eliminar,
+    marcarEdicion,
+    subirAdjunto,
+    quitarAdjunto,
+    crearDocumento,
+  }
 }

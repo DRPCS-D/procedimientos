@@ -15,8 +15,9 @@
  * La hoja debe tener dos pestañas:
  *   "Procedimientos": id | codigo | titulo | descripcion | area |
  *                     fechaCreacion | fechaModificacion |
- *                     usuarioCreador | usuarioModificacion | docId | docUrl
- *   "Usuarios":       usuario | password | rol | activo
+ *                     usuarioCreador | usuarioModificacion | docId | docUrl |
+ *                     adjuntoId | adjuntoNombre
+ *   "Usuarios":      usuario | password | rol | activo
  */
 
 // ID de la carpeta de Drive donde se crearán los documentos.
@@ -35,8 +36,12 @@ var SHEET_USUARIOS = 'Usuarios';
 var COL = {
   id: 0, codigo: 1, titulo: 2, descripcion: 3, area: 4,
   fechaCreacion: 5, fechaModificacion: 6,
-  usuarioCreador: 7, usuarioModificacion: 8, docId: 9, docUrl: 10
+  usuarioCreador: 7, usuarioModificacion: 8, docId: 9, docUrl: 10,
+  adjuntoId: 11, adjuntoNombre: 12
 };
+
+// Tamaño máximo del archivo adjunto (bytes ya decodificados).
+var ADJUNTO_MAX_BYTES = 10 * 1024 * 1024;
 
 function doGet() {
   return jsonOut_({ ok: true, service: 'procedimientos' });
@@ -58,6 +63,9 @@ function doPost(e) {
       case 'updateManual':  return handleUpdateManual_(body);
       case 'marcarEdicion': return handleMarcarEdicion_(body);
       case 'deleteManual':  return handleDeleteManual_(body);
+      case 'crearDocumento': return handleCrearDocumento_(body);
+      case 'subirAdjunto':  return handleSubirAdjunto_(body);
+      case 'quitarAdjunto': return handleQuitarAdjunto_(body);
       case 'listUsuarios':  return handleListUsuarios_(body);
       case 'createUsuario': return handleCreateUsuario_(body);
       case 'updateUsuario': return handleUpdateUsuario_(body);
@@ -155,9 +163,11 @@ function handleListManuales_(body) {
 
 function handleCreateManual_(body) {
   var user = requireAdmin_(body);
-  var titulo = String(body.titulo || '').trim().slice(0, 20);
-  var area = String(body.area || '').trim().slice(0, 20);
+  var titulo = String(body.titulo || '').trim().slice(0, 50);
+  var area = String(body.area || '').trim().slice(0, 30);
   var descripcion = String(body.descripcion || '').trim();
+  // Por compatibilidad, si no llega el campo se crea el documento como antes.
+  var crearDoc = body.crearDoc !== false;
 
   if (!titulo) throw new Error('El título es obligatorio.');
 
@@ -172,14 +182,13 @@ function handleCreateManual_(body) {
   try {
     var codigo = String(siguienteCodigo_(sheet));
 
-    var doc = DocumentApp.create(codigo + ' - ' + titulo);
-    doc.saveAndClose();
-
-    var docId = doc.getId();
-    var file = DriveApp.getFileById(docId);
-    moverACarpeta_(file, folder);
-    compartirLectura_(file);
-    var docUrl = 'https://docs.google.com/document/d/' + docId + '/edit';
+    var docId = '';
+    var docUrl = '';
+    if (crearDoc) {
+      var d = crearDocEnBlanco_(codigo, titulo, folder);
+      docId = d.docId;
+      docUrl = d.docUrl;
+    }
 
     id = Utilities.getUuid();
     var fila = [];
@@ -202,6 +211,117 @@ function handleCreateManual_(body) {
   return jsonOut_({ ok: true, manual: rowToManual_(filaPorId_(sheet, id).valores) });
 }
 
+/** Crea un Google Doc en blanco dentro de la carpeta y lo comparte en lectura. */
+function crearDocEnBlanco_(codigo, titulo, folder) {
+  var doc = DocumentApp.create(codigo + ' - ' + titulo);
+  doc.saveAndClose();
+  var docId = doc.getId();
+  var file = DriveApp.getFileById(docId);
+  moverACarpeta_(file, folder);
+  compartirLectura_(file);
+  return { docId: docId, docUrl: 'https://docs.google.com/document/d/' + docId + '/edit' };
+}
+
+/** Crea el Google Doc de un manual que se creó sin documento. */
+function handleCrearDocumento_(body) {
+  requireAdmin_(body);
+  var id = String(body.id || '').trim();
+  if (!id) throw new Error('Falta el identificador del manual.');
+
+  var sheet = getSheet_(SHEET_MANUALES);
+  var folder = obtenerCarpeta_();
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    var encontrada = filaPorId_(sheet, id);
+    if (!encontrada) throw new Error('El manual ya no existe.');
+    if (String(encontrada.valores[COL.docId] || '').trim()) {
+      throw new Error('Este manual ya tiene documento.');
+    }
+    var d = crearDocEnBlanco_(
+      String(encontrada.valores[COL.codigo]),
+      String(encontrada.valores[COL.titulo]),
+      folder
+    );
+    sheet.getRange(encontrada.indice, COL.docId + 1).setValue(d.docId);
+    sheet.getRange(encontrada.indice, COL.docUrl + 1).setValue(d.docUrl);
+  } finally {
+    lock.releaseLock();
+  }
+  return jsonOut_({ ok: true, manual: rowToManual_(filaPorId_(sheet, id).valores) });
+}
+
+/**
+ * Sube (o reemplaza) el archivo adjunto de un manual.
+ * body: { id, nombre, tipo, datos } con `datos` en base64 (sin prefijo data:).
+ */
+function handleSubirAdjunto_(body) {
+  requireAdmin_(body);
+  var id = String(body.id || '').trim();
+  if (!id) throw new Error('Falta el identificador del manual.');
+  var nombre = String(body.nombre || '').trim().replace(/[\\\/:*?"<>|]/g, '_').slice(0, 120);
+  if (!nombre) throw new Error('Falta el nombre del archivo.');
+  if (!body.datos) throw new Error('El archivo está vacío.');
+
+  var bytes = Utilities.base64Decode(String(body.datos));
+  if (!bytes.length) throw new Error('El archivo está vacío.');
+  if (bytes.length > ADJUNTO_MAX_BYTES) {
+    throw new Error('El archivo supera el máximo de ' + (ADJUNTO_MAX_BYTES / 1024 / 1024) + ' MB.');
+  }
+
+  var sheet = getSheet_(SHEET_MANUALES);
+  var folder = obtenerCarpeta_();
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var encontrada = filaPorId_(sheet, id);
+    if (!encontrada) throw new Error('El manual ya no existe.');
+
+    var blob = Utilities.newBlob(bytes, String(body.tipo || 'application/octet-stream'),
+      String(encontrada.valores[COL.codigo]) + ' - ' + nombre);
+    var file = folder.createFile(blob);
+    compartirLectura_(file);
+
+    // Si ya había un adjunto, va a la papelera.
+    var anterior = String(encontrada.valores[COL.adjuntoId] || '').trim();
+    if (anterior) {
+      try { DriveApp.getFileById(anterior).setTrashed(true); } catch (e) {}
+    }
+
+    sheet.getRange(encontrada.indice, COL.adjuntoId + 1).setValue(file.getId());
+    sheet.getRange(encontrada.indice, COL.adjuntoNombre + 1).setValue(nombre);
+  } finally {
+    lock.releaseLock();
+  }
+  return jsonOut_({ ok: true, manual: rowToManual_(filaPorId_(sheet, id).valores) });
+}
+
+/** Quita el adjunto de un manual (el archivo va a la papelera de Drive). */
+function handleQuitarAdjunto_(body) {
+  requireAdmin_(body);
+  var id = String(body.id || '').trim();
+  if (!id) throw new Error('Falta el identificador del manual.');
+
+  var sheet = getSheet_(SHEET_MANUALES);
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    var encontrada = filaPorId_(sheet, id);
+    if (!encontrada) throw new Error('El manual ya no existe.');
+    var adjuntoId = String(encontrada.valores[COL.adjuntoId] || '').trim();
+    if (adjuntoId) {
+      try { DriveApp.getFileById(adjuntoId).setTrashed(true); } catch (e) {}
+    }
+    sheet.getRange(encontrada.indice, COL.adjuntoId + 1).setValue('');
+    sheet.getRange(encontrada.indice, COL.adjuntoNombre + 1).setValue('');
+  } finally {
+    lock.releaseLock();
+  }
+  return jsonOut_({ ok: true });
+}
+
 /** Devuelve el siguiente código: el mayor número existente + 1 (empieza en 1). */
 function siguienteCodigo_(sheet) {
   var rows = sheet.getDataRange().getValues();
@@ -218,8 +338,8 @@ function handleUpdateManual_(body) {
   var id = String(body.id || '').trim();
   if (!id) throw new Error('Falta el identificador del manual.');
 
-  var titulo = String(body.titulo || '').trim().slice(0, 20);
-  var area = String(body.area || '').trim().slice(0, 20);
+  var titulo = String(body.titulo || '').trim().slice(0, 50);
+  var area = String(body.area || '').trim().slice(0, 30);
   var descripcion = String(body.descripcion || '').trim();
   if (!titulo) throw new Error('El título es obligatorio.');
 
@@ -278,6 +398,7 @@ function handleDeleteManual_(body) {
   if (!encontrada) throw new Error('El manual ya no existe.');
 
   var docId = encontrada.valores[COL.docId];
+  var adjuntoId = String(encontrada.valores[COL.adjuntoId] || '').trim();
 
   var lock = LockService.getScriptLock();
   lock.waitLock(10000);
@@ -285,6 +406,10 @@ function handleDeleteManual_(body) {
     sheet.deleteRow(encontrada.indice);
   } finally {
     lock.releaseLock();
+  }
+
+  if (adjuntoId) {
+    try { DriveApp.getFileById(adjuntoId).setTrashed(true); } catch (e) {}
   }
 
   // Mover el documento a la papelera (recuperable 30 días desde Drive).
@@ -494,8 +619,10 @@ function rowToManual_(row) {
     fechaModificacion: normalizarFecha_(row[COL.fechaModificacion]),
     usuarioCreador: String(row[COL.usuarioCreador]),
     usuarioModificacion: String(row[COL.usuarioModificacion]),
-    docId: String(row[COL.docId]),
-    docUrl: String(row[COL.docUrl])
+    docId: String(row[COL.docId] || ''),
+    docUrl: String(row[COL.docUrl] || ''),
+    adjuntoId: String(row[COL.adjuntoId] || ''),
+    adjuntoNombre: String(row[COL.adjuntoNombre] || '')
   };
 }
 

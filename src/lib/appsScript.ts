@@ -44,13 +44,14 @@ function esSesionInvalida(codigo: string | undefined, mensaje: string | undefine
 export async function callApi<T = Record<string, unknown>>(
   action: string,
   payload: Record<string, unknown> = {},
+  timeoutMs: number = TIMEOUT_MS,
 ): Promise<T> {
   if (!URL_APPS_SCRIPT) {
     throw new Error('La aplicación no está configurada: falta VITE_APPS_SCRIPT_URL.')
   }
 
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
 
   let res: Response
   try {

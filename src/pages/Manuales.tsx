@@ -18,13 +18,17 @@ import type { Manual } from '@/lib/tipos'
 export default function Manuales() {
   const { esAdmin } = useAuth()
   const tabla = useAltoRestante<HTMLDivElement>()
-  const { data, loading, error, refetch, crear, editar, eliminar, marcarEdicion } = useManuales()
+  const { data, loading, error, refetch, crear, editar, eliminar, marcarEdicion, subirAdjunto, quitarAdjunto, crearDocumento } =
+    useManuales()
   const [busqueda, setBusqueda] = useState('')
 
   const [modalDetalle, setModalDetalle] = useState<Manual | null>(null)
   const [modalForm, setModalForm] = useState<'nuevo' | Manual | null>(null)
   const [modalBorrar, setModalBorrar] = useState<Manual | null>(null)
   const [borrando, setBorrando] = useState(false)
+
+  // La ficha abierta se toma de la lista actual, para que refleje cambios (p. ej. un documento recién creado).
+  const detalle = modalDetalle ? (data.find((m) => m.id === modalDetalle.id) ?? modalDetalle) : null
 
   const areas = useMemo(() => [...new Set(data.map((m) => m.area).filter(Boolean))].sort(), [data])
 
@@ -119,17 +123,17 @@ export default function Manuales() {
       )}
 
       <ManualDetalleModal
-        manual={modalBorrar ? null : modalDetalle}
+        manual={modalBorrar ? null : detalle}
         esAdmin={esAdmin}
         onCerrar={() => setModalDetalle(null)}
         onEditarDatos={() => {
-          setModalForm(modalDetalle)
+          setModalForm(detalle)
           setModalDetalle(null)
         }}
         onEditarContenido={() => {
-          if (modalDetalle) marcarEdicion(modalDetalle.id)
+          if (detalle) marcarEdicion(detalle.id)
         }}
-        onBorrar={() => setModalBorrar(modalDetalle)}
+        onBorrar={() => setModalBorrar(detalle)}
       />
 
       <ManualFormModal
@@ -143,6 +147,9 @@ export default function Manuales() {
         }}
         crear={crear}
         editar={editar}
+        subirAdjunto={subirAdjunto}
+        quitarAdjunto={quitarAdjunto}
+        crearDocumento={crearDocumento}
       />
 
       <ConfirmModal

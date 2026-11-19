@@ -23,7 +23,12 @@ export interface Manual {
   usuarioModificacion: string
   docId: string
   docUrl: string
+  adjuntoId: string
+  adjuntoNombre: string
 }
+
+/** Tamaño máximo del archivo adjunto (coincide con ADJUNTO_MAX_BYTES de Code.gs). */
+export const ADJUNTO_MAX_MB = 10
 
 export interface UsuarioApp {
   usuario: string
