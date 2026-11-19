@@ -161,6 +161,31 @@ function handleListManuales_(body) {
   return jsonOut_({ ok: true, manuales: manuales });
 }
 
+/**
+ * Ejecuta `fn` con el lock del script tomado. TODA lectura que decide una
+ * escritura (buscar la fila, validar duplicados, contar admins, comprobar el
+ * estado) debe hacerse DENTRO de `fn`: si se hace antes, otra petición puede
+ * insertar o borrar filas entre la búsqueda y la escritura y el cambio caería
+ * en otra fila. `flush()` confirma las escrituras antes de soltar el lock, así
+ * la siguiente ejecución que lo tome ya las ve.
+ */
+function conLock_(fn, esperaMs) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(esperaMs || 15000);
+  try {
+    return fn();
+  } finally {
+    try { SpreadsheetApp.flush(); } catch (e) {}
+    lock.releaseLock();
+  }
+}
+
+/** Manda un archivo de Drive a la papelera sin fallar si ya no existe. */
+function papelera_(id) {
+  if (!id) return;
+  try { DriveApp.getFileById(id).setTrashed(true); } catch (e) {}
+}
+
 function handleCreateManual_(body) {
   var user = requireAdmin_(body);
   var titulo = String(body.titulo || '').trim().slice(0, 50);
@@ -176,10 +201,7 @@ function handleCreateManual_(body) {
 
   // El código se asigna automáticamente. Se calcula y se inserta dentro del
   // lock para que dos creaciones simultáneas no obtengan el mismo número.
-  var lock = LockService.getScriptLock();
-  lock.waitLock(15000);
-  var id;
-  try {
+  var manual = conLock_(function () {
     var codigo = String(siguienteCodigo_(sheet));
 
     var docId = '';
@@ -190,25 +212,32 @@ function handleCreateManual_(body) {
       docUrl = d.docUrl;
     }
 
-    id = Utilities.getUuid();
-    var fila = [];
-    fila[COL.id] = id;
-    fila[COL.codigo] = codigo;
-    fila[COL.titulo] = titulo;
-    fila[COL.descripcion] = descripcion;
-    fila[COL.area] = area;
-    fila[COL.fechaCreacion] = new Date().toISOString();
-    fila[COL.fechaModificacion] = '';
-    fila[COL.usuarioCreador] = user.usuario;
-    fila[COL.usuarioModificacion] = '';
-    fila[COL.docId] = docId;
-    fila[COL.docUrl] = docUrl;
-    sheet.appendRow(fila);
-  } finally {
-    lock.releaseLock();
-  }
+    try {
+      var id = Utilities.getUuid();
+      var fila = [];
+      fila[COL.id] = id;
+      fila[COL.codigo] = codigo;
+      fila[COL.titulo] = titulo;
+      fila[COL.descripcion] = descripcion;
+      fila[COL.area] = area;
+      fila[COL.fechaCreacion] = new Date().toISOString();
+      fila[COL.fechaModificacion] = '';
+      fila[COL.usuarioCreador] = user.usuario;
+      fila[COL.usuarioModificacion] = '';
+      fila[COL.docId] = docId;
+      fila[COL.docUrl] = docUrl;
+      fila[COL.adjuntoId] = '';
+      fila[COL.adjuntoNombre] = '';
+      sheet.appendRow(fila);
+      return rowToManual_(filaPorId_(sheet, id).valores);
+    } catch (e) {
+      // Si la fila no se pudo escribir, el Doc recién creado no debe quedar huérfano en Drive.
+      papelera_(docId);
+      throw e;
+    }
+  });
 
-  return jsonOut_({ ok: true, manual: rowToManual_(filaPorId_(sheet, id).valores) });
+  return jsonOut_({ ok: true, manual: manual });
 }
 
 /** Crea un Google Doc en blanco dentro de la carpeta y lo comparte en lectura. */
@@ -231,9 +260,7 @@ function handleCrearDocumento_(body) {
   var sheet = getSheet_(SHEET_MANUALES);
   var folder = obtenerCarpeta_();
 
-  var lock = LockService.getScriptLock();
-  lock.waitLock(15000);
-  try {
+  var manual = conLock_(function () {
     var encontrada = filaPorId_(sheet, id);
     if (!encontrada) throw new Error('El manual ya no existe.');
     if (String(encontrada.valores[COL.docId] || '').trim()) {
@@ -244,12 +271,15 @@ function handleCrearDocumento_(body) {
       String(encontrada.valores[COL.titulo]),
       folder
     );
-    sheet.getRange(encontrada.indice, COL.docId + 1).setValue(d.docId);
-    sheet.getRange(encontrada.indice, COL.docUrl + 1).setValue(d.docUrl);
-  } finally {
-    lock.releaseLock();
-  }
-  return jsonOut_({ ok: true, manual: rowToManual_(filaPorId_(sheet, id).valores) });
+    try {
+      sheet.getRange(encontrada.indice, COL.docId + 1, 1, 2).setValues([[d.docId, d.docUrl]]);
+    } catch (e) {
+      papelera_(d.docId);
+      throw e;
+    }
+    return rowToManual_(filaPorId_(sheet, id).valores);
+  });
+  return jsonOut_({ ok: true, manual: manual });
 }
 
 /**
@@ -273,29 +303,26 @@ function handleSubirAdjunto_(body) {
   var sheet = getSheet_(SHEET_MANUALES);
   var folder = obtenerCarpeta_();
 
-  var lock = LockService.getScriptLock();
-  lock.waitLock(30000);
-  try {
+  var manual = conLock_(function () {
     var encontrada = filaPorId_(sheet, id);
     if (!encontrada) throw new Error('El manual ya no existe.');
 
     var blob = Utilities.newBlob(bytes, String(body.tipo || 'application/octet-stream'),
       String(encontrada.valores[COL.codigo]) + ' - ' + nombre);
     var file = folder.createFile(blob);
-    compartirLectura_(file);
-
-    // Si ya había un adjunto, va a la papelera.
-    var anterior = String(encontrada.valores[COL.adjuntoId] || '').trim();
-    if (anterior) {
-      try { DriveApp.getFileById(anterior).setTrashed(true); } catch (e) {}
+    try {
+      compartirLectura_(file);
+      sheet.getRange(encontrada.indice, COL.adjuntoId + 1, 1, 2).setValues([[file.getId(), nombre]]);
+    } catch (e) {
+      papelera_(file.getId()); // no dejar el archivo nuevo huérfano si la fila no se actualizó
+      throw e;
     }
 
-    sheet.getRange(encontrada.indice, COL.adjuntoId + 1).setValue(file.getId());
-    sheet.getRange(encontrada.indice, COL.adjuntoNombre + 1).setValue(nombre);
-  } finally {
-    lock.releaseLock();
-  }
-  return jsonOut_({ ok: true, manual: rowToManual_(filaPorId_(sheet, id).valores) });
+    // Solo cuando la fila ya apunta al archivo nuevo se manda el anterior a la papelera.
+    papelera_(String(encontrada.valores[COL.adjuntoId] || '').trim());
+    return rowToManual_(filaPorId_(sheet, id).valores);
+  }, 30000);
+  return jsonOut_({ ok: true, manual: manual });
 }
 
 /** Quita el adjunto de un manual (el archivo va a la papelera de Drive). */
@@ -305,20 +332,13 @@ function handleQuitarAdjunto_(body) {
   if (!id) throw new Error('Falta el identificador del manual.');
 
   var sheet = getSheet_(SHEET_MANUALES);
-  var lock = LockService.getScriptLock();
-  lock.waitLock(10000);
-  try {
+  conLock_(function () {
     var encontrada = filaPorId_(sheet, id);
     if (!encontrada) throw new Error('El manual ya no existe.');
     var adjuntoId = String(encontrada.valores[COL.adjuntoId] || '').trim();
-    if (adjuntoId) {
-      try { DriveApp.getFileById(adjuntoId).setTrashed(true); } catch (e) {}
-    }
-    sheet.getRange(encontrada.indice, COL.adjuntoId + 1).setValue('');
-    sheet.getRange(encontrada.indice, COL.adjuntoNombre + 1).setValue('');
-  } finally {
-    lock.releaseLock();
-  }
+    sheet.getRange(encontrada.indice, COL.adjuntoId + 1, 1, 2).setValues([['', '']]);
+    papelera_(adjuntoId);
+  });
   return jsonOut_({ ok: true });
 }
 
@@ -344,24 +364,19 @@ function handleUpdateManual_(body) {
   if (!titulo) throw new Error('El título es obligatorio.');
 
   var sheet = getSheet_(SHEET_MANUALES);
-  var encontrada = filaPorId_(sheet, id);
-  if (!encontrada) throw new Error('El manual ya no existe.');
 
   // El código es automático y no se modifica. Solo se actualizan los datos de
   // la ficha. NO se toca "modificado" (eso refleja cambios del Google Doc) ni
   // se renombra el Doc (renombrarlo alteraría su fecha de modificación).
-  var lock = LockService.getScriptLock();
-  lock.waitLock(10000);
-  try {
-    var fila = encontrada.indice; // 1-based para Sheets
-    sheet.getRange(fila, COL.titulo + 1).setValue(titulo);
-    sheet.getRange(fila, COL.descripcion + 1).setValue(descripcion);
-    sheet.getRange(fila, COL.area + 1).setValue(area);
-  } finally {
-    lock.releaseLock();
-  }
+  var manual = conLock_(function () {
+    var encontrada = filaPorId_(sheet, id);
+    if (!encontrada) throw new Error('El manual ya no existe.');
+    // título, descripción y área son columnas contiguas: una sola escritura.
+    sheet.getRange(encontrada.indice, COL.titulo + 1, 1, 3).setValues([[titulo, descripcion, area]]);
+    return rowToManual_(filaPorId_(sheet, id).valores);
+  });
 
-  return jsonOut_({ ok: true, manual: rowToManual_(filaPorId_(sheet, id).valores) });
+  return jsonOut_({ ok: true, manual: manual });
 }
 
 /**
@@ -375,16 +390,11 @@ function handleMarcarEdicion_(body) {
   if (!id) throw new Error('Falta el identificador del manual.');
 
   var sheet = getSheet_(SHEET_MANUALES);
-  var encontrada = filaPorId_(sheet, id);
-  if (!encontrada) throw new Error('El manual ya no existe.');
-
-  var lock = LockService.getScriptLock();
-  lock.waitLock(10000);
-  try {
+  conLock_(function () {
+    var encontrada = filaPorId_(sheet, id);
+    if (!encontrada) throw new Error('El manual ya no existe.');
     sheet.getRange(encontrada.indice, COL.usuarioModificacion + 1).setValue(user.usuario);
-  } finally {
-    lock.releaseLock();
-  }
+  }, 10000);
   return jsonOut_({ ok: true });
 }
 
@@ -394,28 +404,20 @@ function handleDeleteManual_(body) {
   if (!id) throw new Error('Falta el identificador del manual.');
 
   var sheet = getSheet_(SHEET_MANUALES);
-  var encontrada = filaPorId_(sheet, id);
-  if (!encontrada) throw new Error('El manual ya no existe.');
-
-  var docId = encontrada.valores[COL.docId];
-  var adjuntoId = String(encontrada.valores[COL.adjuntoId] || '').trim();
-
-  var lock = LockService.getScriptLock();
-  lock.waitLock(10000);
-  try {
+  var archivos = conLock_(function () {
+    var encontrada = filaPorId_(sheet, id);
+    if (!encontrada) throw new Error('El manual ya no existe.');
+    var ids = {
+      docId: String(encontrada.valores[COL.docId] || '').trim(),
+      adjuntoId: String(encontrada.valores[COL.adjuntoId] || '').trim()
+    };
     sheet.deleteRow(encontrada.indice);
-  } finally {
-    lock.releaseLock();
-  }
+    return ids;
+  }, 10000);
 
-  if (adjuntoId) {
-    try { DriveApp.getFileById(adjuntoId).setTrashed(true); } catch (e) {}
-  }
-
-  // Mover el documento a la papelera (recuperable 30 días desde Drive).
-  if (docId) {
-    try { DriveApp.getFileById(docId).setTrashed(true); } catch (e) {}
-  }
+  // Los archivos van a la papelera (recuperables 30 días desde Drive), ya fuera del lock.
+  papelera_(archivos.adjuntoId);
+  papelera_(archivos.docId);
 
   return jsonOut_({ ok: true });
 }
@@ -449,15 +451,10 @@ function handleCreateUsuario_(body) {
   if (!password) throw new Error('La contraseña inicial es obligatoria.');
 
   var sheet = getSheet_(SHEET_USUARIOS);
-  if (usuarioExiste_(sheet, nombre)) throw new Error('Ya existe un usuario con ese nombre.');
-
-  var lock = LockService.getScriptLock();
-  lock.waitLock(10000);
-  try {
+  conLock_(function () {
+    if (usuarioExiste_(sheet, nombre)) throw new Error('Ya existe un usuario con ese nombre.');
     sheet.appendRow([nombre, password, rol, activo]);
-  } finally {
-    lock.releaseLock();
-  }
+  }, 10000);
   return jsonOut_({ ok: true });
 }
 
@@ -471,33 +468,32 @@ function handleUpdateUsuario_(body) {
   var nuevoNombre = String(body.nuevoUsuario || '').trim().toUpperCase(); // nombres siempre en mayúsculas
 
   var sheet = getSheet_(SHEET_USUARIOS);
-  var encontrada = usuarioPorNombre_(sheet, nombre);
-  if (!encontrada) throw new Error('El usuario ya no existe.');
-
-  // Evita dejar el sistema sin ningún Admin activo.
-  var eraAdminActivo = normalizarRol_(encontrada.valores[2]) === 'admin' && esActivo_(encontrada.valores[3]);
-  var seguiraSiendoAdminActivo = rol === 'admin' && activo;
-  if (eraAdminActivo && !seguiraSiendoAdminActivo && contarAdminsActivos_(sheet) <= 1) {
-    throw new Error('No puedes quitar el último Admin activo.');
-  }
-
-  // Renombrar es opcional: solo si viene un nombre distinto al actual.
   var seRenombra = !!nuevoNombre && nuevoNombre !== nombre.toUpperCase();
-  if (seRenombra && usuarioExiste_(sheet, nuevoNombre)) {
-    throw new Error('Ya existe un usuario con ese nombre.');
-  }
 
-  var lock = LockService.getScriptLock();
-  lock.waitLock(10000);
-  try {
-    var fila = encontrada.indice;
-    if (seRenombra) sheet.getRange(fila, 1).setValue(nuevoNombre);
-    sheet.getRange(fila, 3).setValue(rol);
-    sheet.getRange(fila, 4).setValue(activo);
-    if (nuevaPassword) sheet.getRange(fila, 2).setValue(nuevaPassword);
-  } finally {
-    lock.releaseLock();
-  }
+  conLock_(function () {
+    var encontrada = usuarioPorNombre_(sheet, nombre);
+    if (!encontrada) throw new Error('El usuario ya no existe.');
+
+    // Evita dejar el sistema sin ningún Admin activo.
+    var eraAdminActivo = normalizarRol_(encontrada.valores[2]) === 'admin' && esActivo_(encontrada.valores[3]);
+    var seguiraSiendoAdminActivo = rol === 'admin' && activo;
+    if (eraAdminActivo && !seguiraSiendoAdminActivo && contarAdminsActivos_(sheet) <= 1) {
+      throw new Error('No puedes quitar el último Admin activo.');
+    }
+
+    // Renombrar es opcional: solo si viene un nombre distinto al actual.
+    if (seRenombra && usuarioExiste_(sheet, nuevoNombre)) {
+      throw new Error('Ya existe un usuario con ese nombre.');
+    }
+
+    // usuario, contraseña, rol y activo son las 4 primeras columnas: una sola escritura.
+    sheet.getRange(encontrada.indice, 1, 1, 4).setValues([[
+      seRenombra ? nuevoNombre : encontrada.valores[0],
+      nuevaPassword ? nuevaPassword : encontrada.valores[1],
+      rol,
+      activo
+    ]]);
+  }, 10000);
   return jsonOut_({ ok: true, usuario: seRenombra ? nuevoNombre : nombre.toUpperCase() });
 }
 
@@ -508,21 +504,16 @@ function handleDeleteUsuario_(body) {
   if (nombre === actual.usuario) throw new Error('No puedes borrarte a ti mismo.');
 
   var sheet = getSheet_(SHEET_USUARIOS);
-  var encontrada = usuarioPorNombre_(sheet, nombre);
-  if (!encontrada) throw new Error('El usuario ya no existe.');
+  conLock_(function () {
+    var encontrada = usuarioPorNombre_(sheet, nombre);
+    if (!encontrada) throw new Error('El usuario ya no existe.');
 
-  var esAdminActivo = normalizarRol_(encontrada.valores[2]) === 'admin' && esActivo_(encontrada.valores[3]);
-  if (esAdminActivo && contarAdminsActivos_(sheet) <= 1) {
-    throw new Error('No puedes borrar el último Admin activo.');
-  }
-
-  var lock = LockService.getScriptLock();
-  lock.waitLock(10000);
-  try {
+    var esAdminActivo = normalizarRol_(encontrada.valores[2]) === 'admin' && esActivo_(encontrada.valores[3]);
+    if (esAdminActivo && contarAdminsActivos_(sheet) <= 1) {
+      throw new Error('No puedes borrar el último Admin activo.');
+    }
     sheet.deleteRow(encontrada.indice);
-  } finally {
-    lock.releaseLock();
-  }
+  }, 10000);
   return jsonOut_({ ok: true });
 }
 
@@ -533,16 +524,11 @@ function handleCambiarMiPassword_(body) {
   if (!nuevaPassword) throw new Error('La nueva contraseña es obligatoria.');
 
   var sheet = getSheet_(SHEET_USUARIOS);
-  var encontrada = usuarioPorNombre_(sheet, user.usuario);
-  if (!encontrada) throw new Error('El usuario ya no existe.');
-
-  var lock = LockService.getScriptLock();
-  lock.waitLock(10000);
-  try {
+  conLock_(function () {
+    var encontrada = usuarioPorNombre_(sheet, user.usuario);
+    if (!encontrada) throw new Error('El usuario ya no existe.');
     sheet.getRange(encontrada.indice, 2).setValue(nuevaPassword);
-  } finally {
-    lock.releaseLock();
-  }
+  }, 10000);
   return jsonOut_({ ok: true });
 }
 
