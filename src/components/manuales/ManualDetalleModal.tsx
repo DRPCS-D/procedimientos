@@ -128,7 +128,9 @@ export function ManualDetalleModal({
           )}
         </div>
 
-        {manual.descripcion && <p className="text-sm text-muted-foreground">{manual.descripcion}</p>}
+        {manual.descripcion && (
+          <p className="whitespace-pre-line text-sm text-muted-foreground">{manual.descripcion}</p>
+        )}
 
         {urlPreview ? (
           <div className="flex justify-end">
